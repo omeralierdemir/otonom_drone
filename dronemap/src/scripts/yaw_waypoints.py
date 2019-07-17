@@ -4,22 +4,32 @@ import rospy
 import random
 import time
 import math
+import mavros
 from std_msgs.msg import String
 from sensor_msgs.msg import NavSatFix
 from mavros_msgs.msg import *
 from mavros_msgs.srv import *
+from mavros_msgs.msg import PositionTarget
 
-def create_waypoint():
 
+current_state = State()
+msg = PositionTarget()
+
+def state_cb(state):
+    global current_state
+    current_state = state
+
+def create_waypoints():
+	pub = rospy.Publisher('/mavros/setpoint_raw/local', PositionTarget,queue_size=10)
 	x = 47.3977417
 	y = 8.5455943
-	a = x + 0.00004
-	b = y + 0.00007 # buradaki degeri 400/700 ile carpip ayni skalaya cek
+	a = x - 0.00004
+	b = y + 0.0001 # buradaki degeri 400/700 ile carpip ayni skalaya cek
 	# sebebi 400 5m ise 700 long da 5m 
 	x_eksen = a - x 
 	y_eksen = (b - y) * 400/700
-	tan = math.atan(y_eksen/x_eksen)
-	print("a :", a, "b :" , "bolme :" ,y_eksen/x_eksen )
+	tan = math.atan(y_eksen/x_eksen) # radyan cinsinden deger donderir.
+	print("a :", x_eksen, "b :" ,y_eksen ,"bolme :" ,y_eksen/x_eksen )
 	print("tanjant degeri : " ,tan )
 	waypoint_clear_client()
 	wl = []
@@ -71,11 +81,12 @@ def create_waypoint():
 	wp.z_alt = 4.0
 	wl.append(wp)
 	
-	print(wl)
+	#print(wl)
 
 	try:
-	    service = rospy.ServiceProxy('mavros/mission/push', WaypointPush, persistent=True)
-	    service(start_index=0, waypoints=wl)
+		#pub.publish(konum)
+		service = rospy.ServiceProxy('mavros/mission/push', WaypointPush, persistent=True)
+		service(start_index=0, waypoints=wl)
 	    
 	except rospy.ServiceException, e:
 	    print "Service call failed: %s" % e
@@ -91,38 +102,106 @@ def waypoint_clear_client():
 
 
 if __name__ == '__main__':
+	
+
 	rospy.init_node('waypoint_node', anonymous=True)
-	pub = rospy.Publisher('global',String,queue_size=10)
+	mavros.set_namespace('mavros')
+	rate = rospy.Rate(20)
+	rospy.wait_for_service('/mavros/cmd/arming')
+	set_mode = rospy.ServiceProxy(mavros.get_topic('set_mode'), mavros_msgs.srv.SetMode)
+	#set_mode(0,'MANUAL')
+	state_sub = rospy.Subscriber(mavros.get_topic('state'), State, state_cb)
+	waypoint_clear_client()
+
+	try:
+		armService = rospy.ServiceProxy('/mavros/cmd/arming', mavros_msgs.srv.CommandBool)
+
+		armService(True)
+	except rospy.ServiceException, e: # metin abi hold ona al dedi
+	 	pass
+	
+	
+	try:
+		
+		
+		
+		
+		while current_state.mode != "AUTO.MISSION":
+			
+			#pub.publish(msg)
+			print "buradasin"
+			 
+			set_mode(0,'AUTO.MISSION')
+			rospy.loginfo("AUTO.MISSION mod istegi gonderildi")
+			
+			rate.sleep()
+		
+		#start_time = time.time()
+
+
+		#while not rospy.is_shutdown():
+
+			#current_time = time.time()
+			#print(int(current_time) - int(start_time))
+			#if (int(current_time) - int(start_time))>= 4:
+
+		create_waypoints()
+				#print(start_time)
+
+			#pub.publish(konum)
+		#waypoint_clear_client()
+		print "omer servis cagrildi"
+
+	except rospy.ROSInterruptException:
+		pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""
+	rospy.init_node('waypoint_node', anonymous=True)
+	
 	konum = "suan buradasin" # to be used later
-	pub.publish(konum)
+
+
+	pub = rospy.Publisher('/uav1/mavros/setpoint_raw/local', PositionTarget,queue_size=10)
+
+
+
+
+	msg.header.stamp = rospy.Time.now()
+	msg.header.frame_id= "world"
+	msg.coordinate_frame = 8
+	msg.type_mask= 1479
+
+	msg.velocity.x = 0.0
+	msg.velocity.y = 0.0
+	msg.velocity.z = 0.0
+	msg.yaw_rate = 0.0
+
+	
 	create_waypoint()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	"""
 
 
 

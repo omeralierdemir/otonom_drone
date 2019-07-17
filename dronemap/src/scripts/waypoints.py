@@ -55,7 +55,7 @@ def create_waypoint():
 	wp.param2 = 0
 	wp.param3 = 1
 	wp.param4 = 0
-	wp.x_lat = 47.3977917
+	wp.x_lat = 47.3977817
 	wp.y_long = 8.5455943
 	wp.z_alt = 4.0
 	wl.append(wp)
