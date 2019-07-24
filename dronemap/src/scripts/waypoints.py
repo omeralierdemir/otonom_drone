@@ -33,7 +33,7 @@ def create_waypoint():
 
 	wp.frame = 3
 	wp.command = 16  #Navigate to waypoint.
-	wp.is_current = False
+	wp.is_current = True
 	wp.autocontinue = True
 	wp.param1 = 0  # delay 
 	wp.param2 = 0
@@ -49,8 +49,8 @@ def create_waypoint():
 
 	wp.frame = 3
 	wp.command = 19  # Navigate to waypoint.
-	wp.is_current = False
-	wp.autocontinue = True
+	wp.is_current = True
+	wp.autocontinue = False
 	wp.param1 = 0  # delay
 	wp.param2 = 0
 	wp.param3 = 1

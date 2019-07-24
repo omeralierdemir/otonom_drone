@@ -21,34 +21,28 @@ def state_cb(state):
 
 def create_waypoints():
 	pub = rospy.Publisher('/mavros/setpoint_raw/local', PositionTarget,queue_size=10)
-	x = 47.3977417
-	y = 8.5455943
-	a = x - 0.00004
-	b = y + 0.0001 # buradaki degeri 400/700 ile carpip ayni skalaya cek
+	y = 47.3977417 
+	x = 8.5455943
+	a = y - 0.00004	
+	b = x + 0.00007 # buradaki degeri 400/700 ile carpip ayni skalaya cek
 	# sebebi 400 5m ise 700 long da 5m 
-	x_eksen = a - x 
-	y_eksen = (b - y) * 400/700
-	tan = math.atan(y_eksen/x_eksen) # radyan cinsinden deger donderir.
-	print("a :", x_eksen, "b :" ,y_eksen ,"bolme :" ,y_eksen/x_eksen )
-	print("tanjant degeri : " ,tan )
+	# y_eksen = a - y 
+	y_eksen =  a - y 
+
+	x_eksen = (b - x) * 400/700
+
+
+	tan = math.atan2(x_eksen,y_eksen)
+	
+	yaw =  (tan / 3.14) *180
+	print("tanjant degeri : " , yaw )
+
+	print("lat :", y_eksen, "long :" ,x_eksen ,"bolme :" ,y_eksen/x_eksen )
+	print("tanjant degeri : " , yaw )
 	waypoint_clear_client()
 	wl = []
-	"""
-	wp = Waypoint()
 
-	wp.frame = 3
-	wp.command = 22  # takeoff
-	wp.is_current = False
-	wp.autocontinue = True
-	wp.param1 = 0  # takeoff altitude
-	wp.param2 = 0
-	wp.param3 = 0
-	wp.param4 = 0
-	wp.x_lat = 47.3971396
-	wp.y_long = 8.5452028
-	wp.z_alt = 4.0
-	wl.append(wp)
-    """
+
     	
 	wp = Waypoint() 
 
@@ -57,11 +51,11 @@ def create_waypoints():
 	wp.is_current = False
 	wp.autocontinue = True
 	wp.param1 = 0  # delay 
-	wp.param2 = 0
+	#wp.param2 = 0
 	wp.param3 = 0
 	wp.param4 = 0
-	wp.x_lat = x
-	wp.y_long = y
+	wp.x_lat = y
+	wp.y_long = x
 	wp.z_alt = 4.0
 	wl.append(wp)
 
@@ -69,13 +63,13 @@ def create_waypoints():
 	wp = Waypoint()
 
 	wp.frame = 3
-	wp.command = 19  # Navigate to waypoint.
+	wp.command = 16  # Navigate to waypoint.
 	wp.is_current = False
 	wp.autocontinue = True
 	wp.param1 = 0  # delay
-	wp.param2 = 0
-	wp.param3 = 1
-	wp.param4 = 0
+	#wp.param2 = 0
+	wp.param3 = 0
+	wp.param4 = yaw
 	wp.x_lat = a
 	wp.y_long = b
 	wp.z_alt = 4.0
