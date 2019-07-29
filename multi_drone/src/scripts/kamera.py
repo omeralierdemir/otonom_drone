@@ -37,7 +37,7 @@ vs = None
 pts = deque(maxlen=64)
 
 def image_callback(ros_image):
-    print 'got an image'
+    
     global bridge
     global vs
   #convert ros_image into an opencv-compatible image
@@ -61,10 +61,10 @@ if __name__ == '__main__':
     time.sleep(4.0)
     
 
-
+   
     while not rospy.is_shutdown():
         # grab the current frame
-        print "while"
+        
         frame = vs
 
         # handle the frame from VideoCapture or VideoStream
@@ -117,6 +117,12 @@ if __name__ == '__main__':
                 cv2.circle(frame, (int(x), int(y)), int(radius),
                     (0, 255, 255), 2)
                 cv2.circle(frame, center, 5, (0, 0, 255), -1)
+
+        else:
+
+            
+            konum = "null"
+            pub.publish(konum)  
 
         # update the points queue
         pts.appendleft(center)

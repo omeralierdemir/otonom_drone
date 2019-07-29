@@ -32,9 +32,9 @@ def create_waypoints():
 	x_eksen = (b - x) * 400/700
 
 
-	tan = math.atan2(x_eksen,y_eksen)
+	###tan = math.atan2(x_eksen,y_eksen)
 	
-	yaw =  (tan / 3.14) *180
+	###yaw =  (tan / 3.14) *180
 	print("tanjant degeri : " , yaw )
 
 	print("lat :", y_eksen, "long :" ,x_eksen ,"bolme :" ,y_eksen/x_eksen )
@@ -53,7 +53,7 @@ def create_waypoints():
 	wp.param1 = 0  # delay 
 	#wp.param2 = 0
 	wp.param3 = 0
-	wp.param4 = 0
+	#wp.param4 = 0
 	wp.x_lat = y
 	wp.y_long = x
 	wp.z_alt = 4.0
@@ -69,7 +69,7 @@ def create_waypoints():
 	wp.param1 = 0  # delay
 	#wp.param2 = 0
 	wp.param3 = 0
-	wp.param4 = yaw
+	#wp.param4 = 
 	wp.x_lat = a
 	wp.y_long = b
 	wp.z_alt = 4.0

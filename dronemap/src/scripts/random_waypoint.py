@@ -39,19 +39,16 @@ def create_waypoints():
 	rate = rospy.Rate(20)
 
 	wl = []
-	pub = rospy.Publisher('/mavros/setpoint_raw/local', PositionTarget,queue_size=10)
+	pub = rospy.Publisher('/mavros/dronemap/random_waypoint', String,queue_size=10)
 
-	x = 47.3977417
-	y = 8.5455943
-	a = x + 0.00004
-	b = y + 0.00007 # buradaki degeri 400/700 ile carpip ayni skalaya cek
-	# sebebi 400 5m ise 700 long da 5m 
+
 	
 	waypoint_clear_client()
 		
 	
 	r1 = random.randint(-9,9)  # gecici cozum
 	r2 = random.randint(-9,9)
+	altitude = 10
 	start_time2 = time.time()
 	current_time2 = time.time()
 
@@ -63,63 +60,19 @@ def create_waypoints():
 
 	y_eksen = old_lat + (r1* 0.00001) - old_lat #burada direk r1* 0.00001 i esitlenebilir ama hatirlanman icin boyle yaptin 
 	x_eksen = (old_long + (r2* 0.00001) - old_long) * 400/700 # ayni scalayacektik enlem ile boylami (yaklasik olarak)
-	#tan = math.atan(y_eksen/x_eksen) # radyan cinsinden deger donderir.
-	#print("a :", x_eksen, "b :" y_eksen, "bolme :" ,y_eksen/x_eksen )
-	#print("tanjant: ", tan) 
-	#DIKKAT!!!!! x_eksen longitude y_eksen latitude burada x_eksen ile y_eksen ters yazildi. isim olarak sadece sikinti var
-
 	
-	"""
-	if y_eksen >= 0 and x_eksen >= 0: #buradaki = e dikkat et patlatabilir. [+,+]
+	tan = math.atan2(x_eksen,y_eksen)
 	
-		tan = math.atan(y_eksen/x_eksen) # radyan cinsinden deger donderir.
-		msg.yaw = 0 + tan # radyan 0 ekseni
-		
-
-	elif y_eksen > 0 and x_eksen < 0: # [+,-] ---->[y_eksen,x_eksen]
-
-		tan = math.atan(y_eksen/x_eksen) # radyan cinsinden deger donderir.
-		msg.yaw = 1.57 - tan # burada duzgun geldigi icin aci tumleyeni almadik 90 derece ile
-		
-	elif y_eksen < 0 and x_eksen < 0: # [-,-]
-		
-		tan = math.atan(x_eksen/y_eksen) # radyan cinsinden deger donderir.
-		msg.yaw = 3.14 + tan
-		
-	elif y_eksen < 0 and x_eksen > 0: # [-,+]
-		
-		tan = math.atan(x_eksen/y_eksen) # radyan cinsinden deger donderir.
-		msg.yaw = 4.71  - tan
-	print("wooooeyyy")
-	"""
-	#tan = (tan / 3.14) * 180
-	#tan2 = (math.atan2(x_eksen,y_eksen) / math.pi) * 180 
-
-	###tan = math.atan2(x_eksen,y_eksen)
-	
-	#yaw =  (tan / math.pi) * 180
+	yaw =  (tan / math.pi) * 180
 	print("random degerler" , r1, r2)
 	print("lat: " ,y_eksen," long : ",x_eksen)
 	print("tanjant: ", tan)
 
+	coordinates = str(old_lat + (r1* 0.00001)) + " " + str(old_long + (r2* 0.00001)) + " " + str(altitude)
+	pub.publish(coordinates)
+
 	print
-	#rospy.loginfo("OFFBOARD mod istegi gonderildi")
-	"""
-	while current_state.mode != "OFFBOARD":
-			
-			waypoint_clear_client()
-			pub.publish(msg)
-			#print "buradasin OFFBOARD"
-			 
-			set_mode(0,'OFFBOARD')
-			#rospy.loginfo("OFFBOARD mod istegi gonderildi")
-			
-			rate.sleep()
-	#print ("time : ", current_time2, start_time2)
-	while int(current_time2) - int(start_time2)<= 2:
-		#print("don haci",int(start_time2) - int(current_time2) )
-		current_time2 = time.time() 
-	"""
+	
 	rospy.loginfo("AUTO.MISSION mod istegi gonderildi")
 	
 	while current_state.mode != "AUTO.MISSION":
@@ -142,10 +95,10 @@ def create_waypoints():
 	wp.param1 = 0  # delay 
 	#wp.param2 = 0
 	wp.param3 = 1
-	#wp.param4 = yaw
+	wp.param4 = yaw
 	wp.x_lat = old_lat + r1* 0.00001
 	wp.y_long = old_long + r2* 0.00001
-	wp.z_alt = 10.0
+	wp.z_alt = altitude
 	wl.append(wp)
 
 
@@ -181,28 +134,11 @@ if __name__ == '__main__':
 	state_sub = rospy.Subscriber(mavros.get_topic('state'), State, state_cb)
 	waypoint_clear_client()
 
-	try:
-		armService = rospy.ServiceProxy('/mavros/cmd/arming', mavros_msgs.srv.CommandBool)
 
-		armService(True)
-	except rospy.ServiceException, e: # metin abi hold ona al dedi
-	 	pass
-	
-	
 	try:
 		
 		
-		pub = rospy.Publisher('/mavros/setpoint_raw/local', PositionTarget,queue_size=10)
-		msg.header.stamp = rospy.Time.now()
-		msg.header.frame_id = "world"
-		msg.coordinate_frame = PositionTarget.FRAME_BODY_NED
-		msg.type_mask = 3015
-		msg.velocity.x = 0.0
-		msg.velocity.y = 0.0
-		msg.velocity.z = 0.0
-		msg.yaw = 0.0
-		konum = "suan buradasin"
-		print konum
+		
 		while current_state.mode != "AUTO.MISSION":
 			
 			#pub.publish(msg)
@@ -214,12 +150,25 @@ if __name__ == '__main__':
 			rate.sleep()
 		
 		start_time = time.time()
+		start_time2 = time.time()
 
 		
 		while not rospy.is_shutdown():
 
 			current_time = time.time()
 			#print(int(current_time) - int(start_time))
+
+			if (current_time - start_time2 == 3):
+
+					try:
+						armService = rospy.ServiceProxy('/mavros/cmd/arming', mavros_msgs.srv.CommandBool)
+
+						armService(True)
+					except rospy.ServiceException, e: # metin abi hold ona al dedi
+	 					
+	 					pass
+	
+	
 			if (int(current_time) - int(start_time))>= 6:
 
 				create_waypoints()
@@ -227,10 +176,7 @@ if __name__ == '__main__':
 
 			#pub.publish(konum)
 		waypoint_clear_client()
-		#print "omer servis cagrildi"
 		
-		#create_waypoints()
-		#waypoint_clear_client()
 	except rospy.ROSInterruptException:
 		pass
 
