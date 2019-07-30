@@ -18,6 +18,9 @@ old_alt = 10
 old_lat = 47.3977417
 old_long = 8.5455943  # sonrada n / mavros/setpoint_possition/globala sucscriber oluancak
 start_time = 0
+pid_wait = time.time()
+condition_waypoint = 1 # waypoint mesaji gondermek icin bu paremetrenin 1 e set edilmesi gerekir
+condition_pid = 0 # pid ile takip islemine gecilebilmesi icin bu paremetrenin 1 atanmasi gerekmektedir
 current_state = State()
 msg = PositionTarget()
 
@@ -51,8 +54,13 @@ def call_back_coordinates(data):
 
 
 def call_back_pid(pid_data):
-	global axis_z,axis_r,axis_yaw,msg
+	global axis_z,axis_r,axis_yaw,msg,pid_wait,condition_waypoint
+
 	pub = rospy.Publisher('/uav1/mavros/setpoint_raw/local', PositionTarget,queue_size=10)
+	set_mode = rospy.ServiceProxy('/uav1/mavros/set_mode', mavros_msgs.srv.SetMode)
+	#set_mode(0,'MANUAL')
+	
+
 	msg.header.stamp = rospy.Time.now()
 	msg.header.frame_id = "world"
 	msg.coordinate_frame = PositionTarget.FRAME_BODY_NED
@@ -68,9 +76,17 @@ def call_back_pid(pid_data):
 		msg.velocity.y = axis_r
 		msg.velocity.z = axis_z
 		msg.yaw = axis_yaw
+		condition_waypoint = 0
+		pid_wait = 0
+
+		pub.publish(msg)
+		rate.sleep()#buna cok gerek olmayabilir. hesapla ne kadar geciktigini
+
 
 		while current_state.mode != "OFFBOARD":
-			
+			waypoint_clear_client()
+			pub.publish(msg)
+			rate.sleep()#buna cok gerek olmayabilir. hesapla ne kadar geciktigini
 			#pub.publish(msg)
 			#print "buradasin auto"
 			rospy.loginfo("OFFBOARD mod istegi gonderildi")
@@ -79,10 +95,14 @@ def call_back_pid(pid_data):
 			#rospy.loginfo("AUTO.MISSION mod istegi gonderildi")
 			
 			rate.sleep()
-		pub.publish(msg)
-
+		
 	else:
-		print "null" 
+		current_time4 = time.time()
+		print "null"
+		if current_time4 - pid_wait >= 3: # eger 3 sn boyunca hedef iha yok ise ekranda waypoint ile arama yap
+
+			condition_waypoint = 1
+			print "way pointe geciyom haci"
 
 def create_waypoints():
 	global start_time
@@ -92,79 +112,80 @@ def create_waypoints():
 	rate = rospy.Rate(20)
 
 	wl = []
-
+	
 	start_time3 = time.time()
-	while True:
+	if condition_waypoint:
+		while True:
+			print "way deyim haci"
+			current_time3 = time.time()	
+			if int(current_time3) - int(start_time3) >= 2:
+				print
+				break	
+			#print "zaman ", int(current_time3) - int(start_time)
+		
+		waypoint_clear_client()
 
-		current_time3 = time.time()	
-		if int(current_time3) - int(start_time3) >= 2:
-			print
-			break	
-		#print "zaman ", int(current_time3) - int(start_time)
-	
-	waypoint_clear_client()
-
-	start_time2 = time.time()
-	current_time2 = time.time()
-
-
-	y_eksen = lat - old_lat #burada direk r1* 0.00001 i esitlenebilir ama hatirlanman icin boyle yaptin 
-	x_eksen = (longi - old_long) * 400/700 # ayni scalayacektik enlem ile boylami (yaklasik olarak)
-	
-	tan = math.atan2(x_eksen,y_eksen)
-	
-	yaw =  (tan / math.pi) * 180
-	
-	print("lat: " ,y_eksen," long : ",x_eksen)
-	print("tanjant: ", tan)
-
-	
-
-	print
-	
-	
-	while current_state.mode != "AUTO.MISSION":
-			
-			#pub.publish(msg)
-			#print "buradasin auto"
-			rospy.loginfo("AUTO.MISSION mod istegi gonderildi")
-			 
-			set_mode(0,'AUTO.MISSION')
-			#rospy.loginfo("AUTO.MISSION mod istegi gonderildi")
-			
-			rate.sleep()		
-
-	
-	
-	wp = Waypoint()
-	wp.frame = 3
-	wp.command = 16  #Navigate to waypoint.
-	wp.is_current = True
- 	wp.autocontinue = False
-	wp.param1 = 0  # delay 
-	#wp.param2 = 0
-	wp.param3 = 1
-	wp.param4 = yaw
-	wp.x_lat = lat 
-	wp.y_long = longi
-	wp.z_alt = alt
-	wl.append(wp)
+		start_time2 = time.time()
+		current_time2 = time.time()
 
 
-	#print(wl)
-	start_time = time.time()
+		y_eksen = lat - old_lat #burada direk r1* 0.00001 i esitlenebilir ama hatirlanman icin boyle yaptin 
+		x_eksen = (longi - old_long) * 400/700 # ayni scalayacektik enlem ile boylami (yaklasik olarak)
+		
+		tan = math.atan2(x_eksen,y_eksen)
+		
+		yaw =  (tan / math.pi) * 180
+		
+		print("lat: " ,y_eksen," long : ",x_eksen)
+		print("tanjant: ", tan)
 
-	old_lat = lat 
-	old_long = longi
-	old_alt = alt 
-	
-	try:
-	    service = rospy.ServiceProxy('/uav1/mavros/mission/push', WaypointPush, persistent=True)
-	    service(start_index=0, waypoints=wl)
-	  
-	except rospy.ServiceException, e:
-	    print "Service call failed: %s" % e
-	
+		
+
+		print
+		
+		
+		while current_state.mode != "AUTO.MISSION":
+				
+				#pub.publish(msg)
+				#print "buradasin auto"
+				rospy.loginfo("AUTO.MISSION mod istegi gonderildi")
+				 
+				set_mode(0,'AUTO.MISSION')
+				#rospy.loginfo("AUTO.MISSION mod istegi gonderildi")
+				
+				rate.sleep()		
+
+		
+		
+		wp = Waypoint()
+		wp.frame = 3
+		wp.command = 16  #Navigate to waypoint.
+		wp.is_current = True
+	 	wp.autocontinue = False
+		wp.param1 = 0  # delay 
+		#wp.param2 = 0
+		wp.param3 = 1
+		wp.param4 = yaw
+		wp.x_lat = lat 
+		wp.y_long = longi
+		wp.z_alt = alt
+		wl.append(wp)
+
+
+		#print(wl)
+		start_time = time.time()
+
+		old_lat = lat 
+		old_long = longi
+		old_alt = alt 
+		
+		try:
+		    service = rospy.ServiceProxy('/uav1/mavros/mission/push', WaypointPush, persistent=True)
+		    service(start_index=0, waypoints=wl)
+		  
+		except rospy.ServiceException, e:
+		    print "Service call failed: %s" % e
+		
 
 
 if __name__ == '__main__':
