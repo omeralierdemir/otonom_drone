@@ -16,10 +16,27 @@ old_long = 8.5455943  # sonrada n / mavros/setpoint_possition/globala sucscriber
 start_time = 0
 current_state = State()
 msg = PositionTarget()
+current_lat = 0
+current_long = 0
+current_alt = 10
+
+
+	
 
 def state_cb(state):
     global current_state
     current_state = state
+
+def call_back_current_position(data):
+
+	global current_alt,current_lat,current_long
+	
+
+
+
+
+	current_lat =  data.latitude
+	current_long = data.longitude
 
 def waypoint_clear_client():
         try:
@@ -70,8 +87,8 @@ def create_waypoints():
 	print("lat: " ,y_eksen," long : ",x_eksen)
 	print("tanjant: ", tan)
 
-	coordinates = str(old_lat + (r1* 0.00001)) + "," + str(old_long + (r2* 0.00001)) + "," + str(altitude)
-	pub.publish(coordinates)
+	#coordinates = str(old_lat + (r1* 0.00001)) + "," + str(old_long + (r2* 0.00001)) + "," + str(altitude)
+
 	
 
 	print
@@ -110,6 +127,7 @@ def create_waypoints():
 
 	old_lat = old_lat + r1* 0.00001 
 	old_long = old_long + r2* 0.00001
+
 	
 	try:
 	    service = rospy.ServiceProxy('/uav2/mavros/mission/push', WaypointPush, persistent=True)
@@ -119,7 +137,8 @@ def create_waypoints():
 	    print "Service call failed: %s" % e
 
 
-	
+	coordinates = str(current_lat) + "," + str(current_long) + "," + str(current_alt)
+	pub.publish(coordinates)
        
 if __name__ == '__main__':
 
@@ -131,6 +150,8 @@ if __name__ == '__main__':
 	set_mode = rospy.ServiceProxy('/uav2/mavros/set_mode', mavros_msgs.srv.SetMode)
 	#set_mode(0,'MANUAL')
 	state_sub = rospy.Subscriber('/uav2/mavros/state', State, state_cb)
+	rospy.Subscriber('/uav2/mavros/global_position/global', NavSatFix, call_back_current_position)  
+
 	waypoint_clear_client()
 
 
@@ -148,7 +169,7 @@ if __name__ == '__main__':
 			current_time = time.time()
 			#print(int(current_time) - int(start_time))
 
-			if (int(current_time) - int(start_time2) == 3):
+			if (int(current_time) - int(start_time2) == 1):
 
 					print "if deyim"
 					try:
@@ -165,7 +186,7 @@ if __name__ == '__main__':
 	 					
 	 					pass
 					"""
-			if (int(current_time) - int(start_time))>= 3:
+			if (int(current_time) - int(start_time))>= 2:
 
 				create_waypoints()
 				#print(start_time)
