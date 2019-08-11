@@ -18,63 +18,73 @@ msg = PositionTarget()
 
 lastErrorY = 0
 lastErrorR = 0
-
+logPID = open("log_pid.txt", "w")
+logPID2 = open("log_pid2.txt", "w")
 def call_back(data):
 	global lastErrorY
 	global lastErrorR
+	global logPID
+
+
 
 	XY = data.data
-	XY = XY.split(" ")
+	if XY != "null":
+		XY = XY.split(" ")
 
-	x = float(XY[0])
-	y = float(XY[1])
-	r = float(XY[2])
+		x = float(XY[0])
+		y = float(XY[1])
+		r = float(XY[2])
 
-	# -----------------------
-	errorY = 165-y
+		# -----------------------
+		errorY = 300-y
 
-	kp = 1.0/100.0
-	kd = 1.0/150.0
+		kp = 1.0/80.0#0.02 #1.0/100.0 -----> 1/ 80.0  max hiz 3~2 m/s
+		kd = 1.0/75.0#0.012#1.0/150.0 -----> 1.0/75.0
 
-	turevY = errorY-lastErrorY
-	yukselmeY =  errorY*kp + turevY*kd
-	msg.velocity.z = yukselmeY
-	
-	lastErrorY = errorY
+		turevY = errorY-lastErrorY
+		yukselmeY =  errorY*kp + turevY*kd
+		msg.velocity.z = yukselmeY
+		
+		lastErrorY = errorY
 
-	# -----------------------
+		# -----------------------
 
-	errorR = 55 - r
+		errorR = 55 - r
 
-	kpR = 1.0/80.0
-	kdR = 1.0/100.0
+		kpR = 1.0/20.0
+		kdR = 1.0/50.0
 
-	turevR = errorR-lastErrorR
-	yaklasma =  errorR*kpR + turevR*kdR
-	msg.velocity.y = yaklasma
-	
-	lastErrorR = errorR
+		turevR = errorR-lastErrorR
+		yaklasma =  errorR*kpR + turevR*kdR
+		msg.velocity.y = yaklasma
+		
+		lastErrorR = errorR
 
-	# -----------------------
-
-
-	errorX = 300-x
-	
-	if errorX < 30 and errorX > -30:
-		errorX =0
+		# -----------------------
 
 
-	yaw_target = yaw_degrees + (errorX*35)/300
+		errorX = 300-x
+		
+		if errorX < 30 and errorX > -30:
+			errorX =0
 
-	if yaw_target >= 360:
-		yaw_target = yaw_target - 360
 
-	if yaw_target < 0:
-		yaw_target = yaw_target + 360	
-	print "r = ", r, " errorX = ", errorX , " yaw_degrees " , yaw_degrees, " yaw_target", yaw_target
-	
-	msg.yaw = float(yaw_target*math.pi/180.0)
+		yaw_target = yaw_degrees + (errorX*35)/300
 
+		if yaw_target >= 360:
+			yaw_target = yaw_target - 360
+
+		if yaw_target < 0:
+			yaw_target = yaw_target + 360	
+		#print "r = ", r, " errorX = ", errorX , " yaw_degrees " , yaw_degrees, " yaw_target", yaw_target
+		print "y = ", y, " errorY = ", errorY , " kP*errorY :" , errorY*kp, " turevY*kd :", turevY*kd ,"yukselme hizi: ", yukselmeY
+		#print "r = ", r, " errorR = ", errorR , " errorR*kpR :" , errorR*kpR, " turevR*kdR :", turevR*kdR ,"yaklasma hizi: ", yaklasma , "turevR : ", turevR
+			
+		temp = " " + str(r) + " " +  str(errorR) +  " " +  str(errorR*kpR) + " " + str(turevR*kdR) + " " +  str(yaklasma) + " " + str(turevR)+ "\n" 
+		temp2 = " " + str(y) + " " +  str(errorY) +  " " +  str(errorY*kp) + " " + str(turevY*kd) + " " +  str(yukselmeY) + " " + str(x)+ " " + str(turevY)+  "\n"
+		msg.yaw = float(yaw_target*math.pi/180.0)
+		logPID.write(temp)
+		logPID2.write(temp2)
 yaw_degrees = roll = pitch = yaw = 0.0
 
 def get_rotation (msg):
@@ -144,7 +154,7 @@ if  __name__ == '__main__':
 
 	msg.velocity.x = 0.0
 	msg.velocity.y = 0.0
-	msg.velocity.z = 0.0
+	#msg.velocity.z = 0.0
 	msg.yaw = 0.0
 
 	try:
@@ -170,7 +180,8 @@ if  __name__ == '__main__':
 			
 		
 		
-		
+		logPID.close()
+		logPID2.close()
 
 	except rospy.ROSInterruptException:
 		pass

@@ -14,10 +14,11 @@ alt = 10
 lat = 47.3977417
 longi = 8.5455943 
 
-old_alt = 10
-old_lat = 47.3977417
-old_long = 8.5455943  # sonrada n / mavros/setpoint_possition/globala sucscriber oluancak
+current_alt = 10
+current_lat = 47.3977417
+current_long = 8.5455943  # sonrada n / mavros/setpoint_possition/globala sucscriber oluancak
 start_time = 0
+
 current_state = State()
 msg = PositionTarget()
 
@@ -27,13 +28,21 @@ def state_cb(state):
 
 def waypoint_clear_client():
         try:
-            response = rospy.ServiceProxy('/uav2/mavros/mission/clear', WaypointClear)
+            response = rospy.ServiceProxy('/uav1/mavros/mission/clear', WaypointClear)
             return response.call().success
         except rospy.ServiceException, e:
             print "Service call failed: %s" % e
             return False
 
 
+
+def call_back_current_position(data):
+
+	global current_alt,current_lat,current_long
+
+
+	current_lat =  data.latitude
+	current_long = data.longitude
 def call_back_coordinates(data):
 
 	global lat, longi, alt
@@ -49,8 +58,8 @@ def call_back_coordinates(data):
 
 def create_waypoints():
 	global start_time
-	global old_long
-	global old_lat
+	global current_long
+	global current_lat
 
 	rate = rospy.Rate(20)
 
@@ -71,8 +80,8 @@ def create_waypoints():
 	current_time2 = time.time()
 
 
-	y_eksen = lat - old_lat #burada direk r1* 0.00001 i esitlenebilir ama hatirlanman icin boyle yaptin 
-	x_eksen = (longi - old_long) * 400/700 # ayni scalayacektik enlem ile boylami (yaklasik olarak)
+	y_eksen = lat - current_lat #burada direk r1* 0.00001 i esitlenebilir ama hatirlanman icin boyle yaptin 
+	x_eksen = (longi - current_long) * 400/700 # ayni scalayacektik enlem ile boylami (yaklasik olarak)
 	
 	tan = math.atan2(x_eksen,y_eksen)
 	
@@ -116,13 +125,13 @@ def create_waypoints():
 
 	#print(wl)
 	start_time = time.time()
-
-	old_lat = lat 
-	old_long = longi
-	old_alt = alt 
-	
+	"""
+	current_lat = lat 
+	current_long = longi
+	current_alt = alt 
+	"""
 	try:
-	    service = rospy.ServiceProxy('/uav2/mavros/mission/push', WaypointPush, persistent=True)
+	    service = rospy.ServiceProxy('/uav1/mavros/mission/push', WaypointPush, persistent=True)
 	    service(start_index=0, waypoints=wl)
 	  
 	except rospy.ServiceException, e:
@@ -135,12 +144,13 @@ if __name__ == '__main__':
 	rospy.init_node('waypoint_node', anonymous=True)
 	mavros.set_namespace('mavros')
 	rate = rospy.Rate(20)
-	rospy.wait_for_service('/uav2/mavros/cmd/arming')
-	set_mode = rospy.ServiceProxy('/uav2/mavros/set_mode', mavros_msgs.srv.SetMode)
+	rospy.wait_for_service('/uav1/mavros/cmd/arming')
+	set_mode = rospy.ServiceProxy('/uav1/mavros/set_mode', mavros_msgs.srv.SetMode)
 	#set_mode(0,'MANUAL')
-	state_sub = rospy.Subscriber('/uav2/mavros/state', State, state_cb)
+	state_sub = rospy.Subscriber('/uav1/mavros/state', State, state_cb)
 	waypoint_clear_client()
-	rospy.Subscriber('waypoint_random', String, call_back_coordinates) 
+	rospy.Subscriber('waypoint_random', String, call_back_coordinates)
+	rospy.Subscriber('/uav1/mavros/global_position/global', NavSatFix, call_back_current_position)  
 
 	try:
 		
@@ -167,10 +177,10 @@ if __name__ == '__main__':
 			current_time = time.time()
 			#print(int(current_time) - int(start_time))
 
-			if (current_time - start_time2 == 3):
+			if (int(current_time) - int(start_time2) == 3):
 					print "arm"
 					try:
-						armService = rospy.ServiceProxy('/uav2/mavros/cmd/arming', mavros_msgs.srv.CommandBool)
+						armService = rospy.ServiceProxy('/uav1/mavros/cmd/arming', mavros_msgs.srv.CommandBool)
 
 						armService(True)
 					except rospy.ServiceException, e: # metin abi hold ona al dedi

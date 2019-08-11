@@ -35,7 +35,7 @@ bridge = CvBridge()
 vs = None
 
 pts = deque(maxlen=64)
-log_kamera = open("log_kamera.txt", "w")
+
 def image_callback(ros_image):
     
     global bridge
@@ -80,7 +80,7 @@ if __name__ == '__main__':
         frame = imutils.resize(frame, width=600)
         blurred = cv2.GaussianBlur(frame, (11, 11), 0)
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
-        #print frame.shape , " bu kadar"
+
         # construct a mask for the color "green", then perform
         # a series of dilations and erosions to remove any small
         # blobs left in the mask
@@ -105,8 +105,7 @@ if __name__ == '__main__':
             M = cv2.moments(c)
             center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
 
-            konum = str(int(x)) + " " + str(int(y)) + " " + str(int(radius))
-            log_kamera.write(konum+"\n")
+            konum = str(x) + " " + str(y) + " " + str(radius)
             print(int(x),int(y),int(radius))
             pub.publish(konum)  
             rate.sleep()                   
@@ -152,5 +151,4 @@ if __name__ == '__main__':
 
     
     # close all windows
-    log_kamera.close()
     cv2.destroyAllWindows()

@@ -37,7 +37,7 @@ def call_back(data):
 		r = float(XY[2])
 		if r >= 10:
 			# -----------------------
-			errorY = 165-y
+			errorY = 300-y
 
 			kp = 1.0/100.0
 			kd = 1.0/150.0
@@ -79,6 +79,7 @@ def call_back(data):
 			if yaw_target < 0:
 				yaw_target = yaw_target + 360	
 			#print "r = ", r, " errorX = ", errorX , " yaw_degrees " , yaw_degrees, " yaw_target", yaw_target
+			print "y = ", y, " errorY = ", errorY , " kP*errorY :" , errorY*kp, " turevY*kd :", turevY*kd ,"yukselme hizi: ", yukselmeY
 			
 			#msg.yaw = float(yaw_target*math.pi/180.0)
 			yaw = float(yaw_target*math.pi/180.0)
@@ -86,7 +87,7 @@ def call_back(data):
 
 
 			pid_value = axis_z + "," + axis_r + "," + yaw
-			print pid_value
+			#print pid_value
 		else:
 			pid_value = "null"
 

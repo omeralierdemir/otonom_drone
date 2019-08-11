@@ -14,9 +14,9 @@ alt = 10
 lat = 47.3977417
 longi = 8.5455943 
 
-old_alt = 10
-old_lat = 47.3977417
-old_long = 8.5455943  # sonrada n / mavros/setpoint_possition/globala sucscriber oluancak
+current_alt = 10
+current_lat = 47.3977417
+current_long = 8.5455943   # sonrada n / mavros/setpoint_possition/globala sucscriber oluancak
 start_time = 0
 pid_wait = time.time()
 condition_waypoint = 1 # waypoint mesaji gondermek icin bu paremetrenin 1 e set edilmesi gerekir
@@ -26,6 +26,15 @@ msg = PositionTarget()
 
 (axis_z,axis_r,axis_yaw) = (0,0,0)
 
+
+
+def call_back_current_position(data):
+
+	global current_alt,current_lat,current_long
+
+
+	current_lat =  data.latitude
+	current_long = data.longitude
 def state_cb(state):
     global current_state
     current_state = state
@@ -106,8 +115,8 @@ def call_back_pid(pid_data):
 
 def create_waypoints():
 	global start_time
-	global old_long
-	global old_lat
+	global current_long
+	global current_lat
 
 	rate = rospy.Rate(20)
 
@@ -129,8 +138,8 @@ def create_waypoints():
 		current_time2 = time.time()
 
 
-		y_eksen = lat - old_lat #burada direk r1* 0.00001 i esitlenebilir ama hatirlanman icin boyle yaptin 
-		x_eksen = (longi - old_long) * 400/700 # ayni scalayacektik enlem ile boylami (yaklasik olarak)
+		y_eksen = lat - current_lat #burada direk r1* 0.00001 i esitlenebilir ama hatirlanman icin boyle yaptin 
+		x_eksen = (longi - current_long) * 400/700 # ayni scalayacektik enlem ile boylami (yaklasik olarak)
 		
 		tan = math.atan2(x_eksen,y_eksen)
 		
@@ -174,11 +183,11 @@ def create_waypoints():
 
 		#print(wl)
 		start_time = time.time()
-
+		"""
 		old_lat = lat 
 		old_long = longi
 		old_alt = alt 
-		
+		"""
 		try:
 		    service = rospy.ServiceProxy('/uav1/mavros/mission/push', WaypointPush, persistent=True)
 		    service(start_index=0, waypoints=wl)
