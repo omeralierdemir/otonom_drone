@@ -186,7 +186,7 @@ if __name__ == '__main__':
 	 					
 	 					pass
 					"""
-			if (int(current_time) - int(start_time))>= 2:
+			if (int(current_time) - int(start_time))>= 4:
 
 				create_waypoints()
 				#print(start_time)

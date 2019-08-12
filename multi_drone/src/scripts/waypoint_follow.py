@@ -49,6 +49,7 @@ def get_home():
 	while True:
 		
 		if round(current_lat,5) == round(home_lat,5) and round(current_long,5) == round(home_longi,5):
+			print "break"
 			break
 
 	setLandMode()
@@ -93,7 +94,7 @@ def call_back_coordinates(data):
 
 	#print data.data
 	temp = temp + 1
-	temp2 = 1
+	
 	
  	(t_lat, t_longi, t_alt) = data.data.split(",")
  	
@@ -204,10 +205,6 @@ def create_waypoints():
 	
 	print("lat: " ,y_eksen," long : ",x_eksen)
 	print("tanjant: ", tan)
-
-	
-
-	print
 	
 	
 	while current_state.mode != "AUTO.MISSION":
