@@ -19,6 +19,7 @@ msg = PositionTarget()
 current_lat = 0
 current_long = 0
 current_alt = 10
+pub=None
 
 
 	
@@ -29,7 +30,7 @@ def state_cb(state):
 
 def call_back_current_position(data):
 
-	global current_alt,current_lat,current_long
+	global current_alt,current_lat,current_long,pub
 	
 
 
@@ -37,6 +38,9 @@ def call_back_current_position(data):
 
 	current_lat =  data.latitude
 	current_long = data.longitude
+
+	coordinates = str(current_lat) + "," + str(current_long) + "," + str(current_alt)
+	pub.publish(coordinates)
 
 def waypoint_clear_client():
         try:
@@ -56,7 +60,7 @@ def create_waypoints():
 	rate = rospy.Rate(0.3)
 
 	wl = []
-	pub = rospy.Publisher('waypoint_random', String,queue_size=10)
+	#pub = rospy.Publisher('waypoint_random', String,queue_size=10)
 
 
 	
@@ -137,10 +141,12 @@ def create_waypoints():
 	    print "Service call failed: %s" % e
 
 
-	coordinates = str(current_lat) + "," + str(current_long) + "," + str(current_alt)
-	pub.publish(coordinates)
+	
        
 if __name__ == '__main__':
+
+	global pub
+
 
 	rospy.init_node('waypoint_random', anonymous=True)
 	mavros.set_namespace('mavros')
@@ -151,6 +157,8 @@ if __name__ == '__main__':
 	#set_mode(0,'MANUAL')
 	state_sub = rospy.Subscriber('/uav2/mavros/state', State, state_cb)
 	rospy.Subscriber('/uav2/mavros/global_position/global', NavSatFix, call_back_current_position)  
+	pub = rospy.Publisher('waypoint_random', String,queue_size=10)
+
 
 	waypoint_clear_client()
 

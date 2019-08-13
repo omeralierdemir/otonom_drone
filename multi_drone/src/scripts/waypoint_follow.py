@@ -17,7 +17,9 @@ yki_ilk_ucus_onay = 1 # simdilik true ayarlandi sonradan duzeltilmelidir.
 
 home_alt = 0
 home_lat = 0
-home_longi = 0 
+home_longi = 0
+
+temp_time = 0
 
 alt = home_alt
 lat = home_lat
@@ -76,7 +78,7 @@ def waypoint_clear_client():
 def get_takeoff():
 
 	
-	global home_alt,home_longi,home_lat,baslangic_ucusu
+	global home_alt,home_longi,home_lat,baslangic_ucusu,ilk_ucus
 	
 	singleWaypoint(home_lat,home_longi,home_alt)
 
@@ -85,8 +87,8 @@ def get_takeoff():
 		if True: # yer istasyonundan veri gelene kadar bekle
 			print "beni birkere cagircak"
 			break
-	baslangic_ucusu = 1		
-
+	baslangic_ucusu = 1		# null veri gonderince yer istasyonu ne yaptigini test etmen lazim
+	ilk_ucus = 0 # bu ilk kez 1 edildiginde baslangic noktasi set edilmis olunur bu sayede get_home ve ilk ucus saglanir
 def call_back_current_position(data):
 
 	global current_alt,current_lat,current_long, home_longi, home_lat, home_alt
@@ -107,16 +109,17 @@ def call_back_current_position(data):
 	current_long = data.longitude
 def call_back_coordinates(data):
 
-	global lat, longi, alt,temp,temp2
-
+	global lat, longi, alt,temp,temp2,temp_time
 	#print data.data
 	#temp = temp + 1 #bu degisken eve donus testi icin olusturuldu. 7 call_back cagrisindan sonra eve donmesi planlandi test icin
 	
-	
+	current_time = time.time()
+
+
  	(t_lat, t_longi, t_alt) = data.data.split(",")
  	
  	(lat, longi, alt) = (float(t_lat), float(t_longi), float(t_alt))
-	print("call back ", lat, longi,alt)
+	#print("call back ", lat, longi,alt)
 	#print temp
 	#if temp == 7:
 	#	get_home()
@@ -124,8 +127,15 @@ def call_back_coordinates(data):
 	#	print "eve don"
 	#if temp2:
 
+	
+
+	#print 
+
 	if baslangic_ucusu: # eger baslangic ucusu yapildi ise ve yki den veri geldiyse hedef konumlari olustur.
-		create_waypoints()
+		
+		if current_time % 2 > 1.95:	
+			print "create_waypoints cagrildi"
+			create_waypoints()
 
 	else:
 		if yki_ilk_ucus_onay: # baslangic_ucusu gerceklesir ise true olacak. Bu baslangic ucusunun gerceklesmesi icin get_takeoff calismali 
@@ -137,9 +147,10 @@ def create_waypoints():
 	global start_time
 	global current_long
 	global current_lat
-	global ilk_ucus,temp
+	global ilk_ucus,temp,temp_time
 
 
+	temp_time = 0
 	rate = rospy.Rate(20)
 
 	wl = []
@@ -154,9 +165,6 @@ def create_waypoints():
 		#print "zaman ", int(current_time3) - int(start_time)
 	print "ciktim"
 	waypoint_clear_client()
-
-	start_time2 = time.time()
-	current_time2 = time.time()
 
 
 	y_eksen = lat - current_lat #burada direk r1* 0.00001 i esitlenebilir ama hatirlanman icin boyle yaptin 
@@ -208,7 +216,7 @@ def create_waypoints():
 	try:
 	    service = rospy.ServiceProxy('/uav1/mavros/mission/push', WaypointPush, persistent=True)
 	    service(start_index=0, waypoints=wl)
-	    ilk_ucus = 0 # bu ilk kez 1 edildiginde baslangic noktasi set edilmis olunur bu sayede get_home ve ilk ucus saglanir
+	    #ilk_ucus = 0 # bu ilk kez 1 edildiginde baslangic noktasi set edilmis olunur bu sayede get_home ve ilk ucus saglanir
 	  
 	except rospy.ServiceException, e:
 	    print "Service call failed: %s" % e
@@ -273,7 +281,7 @@ def singleWaypoint(except_lat,except_longi, except_alt):
 	try:
 	    service = rospy.ServiceProxy('/uav1/mavros/mission/push', WaypointPush, persistent=True)
 	    service(start_index=0, waypoints=wl)
-	    ilk_ucus = 0 # bu ilk kez 1 edildiginde baslangic noktasi set edilmis olunur bu sayede get_home ve ilk ucus saglanir
+	    
 	  
 	except rospy.ServiceException, e:
 	    print "Service call failed: %s" % e
