@@ -32,6 +32,7 @@ def call_back_current_position(data):
 
 	global current_alt,current_lat,current_long,pub
 	
+	current_time = time.time()	
 
 
 
@@ -39,8 +40,9 @@ def call_back_current_position(data):
 	current_lat =  data.latitude
 	current_long = data.longitude
 
-	coordinates = str(current_lat) + "," + str(current_long) + "," + str(current_alt)
-	pub.publish(coordinates)
+	if current_time % 1 >= 0.9:
+		coordinates = str(current_lat) + "," + str(current_long) + "," + str(current_alt)
+		pub.publish(coordinates)
 
 def waypoint_clear_client():
         try:
@@ -157,7 +159,7 @@ if __name__ == '__main__':
 	#set_mode(0,'MANUAL')
 	state_sub = rospy.Subscriber('/uav2/mavros/state', State, state_cb)
 	rospy.Subscriber('/uav2/mavros/global_position/global', NavSatFix, call_back_current_position)  
-	pub = rospy.Publisher('waypoint_random', String,queue_size=10)
+	pub = rospy.Publisher('waypoint_random', String, queue_size=10)
 
 
 	waypoint_clear_client()
@@ -194,7 +196,7 @@ if __name__ == '__main__':
 	 					
 	 					pass
 					"""
-			if (int(current_time) - int(start_time))>= 5:
+			if (int(current_time) - int(start_time))>= 4:
 
 				create_waypoints()
 				#print(start_time)

@@ -35,6 +35,21 @@ current_state = State()
 msg = PositionTarget()
 
 
+
+def state_cb(state):
+    global current_state
+    current_state = state
+
+def waypoint_clear_client():
+        try:
+            response = rospy.ServiceProxy('/uav1/mavros/mission/clear', WaypointClear)
+            return response.call().success
+        except rospy.ServiceException, e:
+            print "Service call failed: %s" % e
+            return False
+
+
+
 def setLandMode(altitude = 0, latitude = home_lat, longitude = home_longi, min_pitch = 0, yaw = 0):
    rospy.wait_for_service('/uav1/mavros/cmd/land')
    try:
@@ -43,6 +58,9 @@ def setLandMode(altitude = 0, latitude = home_lat, longitude = home_longi, min_p
        isLanding = landService(altitude = 0, latitude = 0, longitude = 0, min_pitch = 0, yaw = 0)
    except rospy.ServiceException, e:
        print "service land call failed: %s. The vehicle cannot land "%e
+
+
+
 
 
 
@@ -60,21 +78,6 @@ def get_home():
 	setLandMode()
 
 
-
-def state_cb(state):
-    global current_state
-    current_state = state
-
-def waypoint_clear_client():
-        try:
-            response = rospy.ServiceProxy('/uav1/mavros/mission/clear', WaypointClear)
-            return response.call().success
-        except rospy.ServiceException, e:
-            print "Service call failed: %s" % e
-            return False
-
-
-
 def get_takeoff():
 
 	
@@ -89,6 +92,17 @@ def get_takeoff():
 			break
 	baslangic_ucusu = 1		# null veri gonderince yer istasyonu ne yaptigini test etmen lazim
 	ilk_ucus = 0 # bu ilk kez 1 edildiginde baslangic noktasi set edilmis olunur bu sayede get_home ve ilk ucus saglanir
+
+
+
+
+
+
+
+
+
+
+
 def call_back_current_position(data):
 
 	global current_alt,current_lat,current_long, home_longi, home_lat, home_alt
@@ -99,26 +113,27 @@ def call_back_current_position(data):
 		home_longi = data.longitude
 		home_alt = 10.0 #baslangic yuksekligi 10m set edildi
 		
-		print ("home paremetreleri set edildi", home_lat,home_longi,home_alt)
-
-
+		#print ("home paremetreleri set edildi", home_lat,home_longi,home_alt)
 
 
 
 	current_lat =  data.latitude
 	current_long = data.longitude
+
+
 def call_back_coordinates(data):
 
 	global lat, longi, alt,temp,temp2,temp_time
 	#print data.data
 	#temp = temp + 1 #bu degisken eve donus testi icin olusturuldu. 7 call_back cagrisindan sonra eve donmesi planlandi test icin
 	
-	current_time = time.time()
+	
 
 
  	(t_lat, t_longi, t_alt) = data.data.split(",")
  	
  	(lat, longi, alt) = (float(t_lat), float(t_longi), float(t_alt))
+
 	#print("call back ", lat, longi,alt)
 	#print temp
 	#if temp == 7:
@@ -129,17 +144,38 @@ def call_back_coordinates(data):
 
 	
 
-	#print 
+
+
+def call_createWaypoints():
+
+	global lat, longi, alt,temp,temp2,temp_time
+	
+
+	current_time = time.time()
 
 	if baslangic_ucusu: # eger baslangic ucusu yapildi ise ve yki den veri geldiyse hedef konumlari olustur.
 		
-		if current_time % 2 > 1.95:	
+		if current_time % 2 >= 1.97:
+			
 			print "create_waypoints cagrildi"
+			print("calbackdeki ",lat, longi, alt)
 			create_waypoints()
 
 	else:
 		if yki_ilk_ucus_onay: # baslangic_ucusu gerceklesir ise true olacak. Bu baslangic ucusunun gerceklesmesi icin get_takeoff calismali 
 			get_takeoff()    # onun calismasi icin yki_ilk_ucus_onay true yani onay verilmesi lazim
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -176,7 +212,7 @@ def create_waypoints():
 	
 	print("lat: " ,y_eksen," long : ",x_eksen)
 	print("tanjant: ", tan)
-	
+	print("lat, long create daki" ,lat, longi)
 	
 	while current_state.mode != "AUTO.MISSION":
 			
@@ -198,7 +234,7 @@ def create_waypoints():
  	wp.autocontinue = False
 	wp.param1 = 0  # delay 
 	#wp.param2 = 0
-	wp.param3 = 1
+	wp.param3 = 0
 	wp.param4 = yaw
 	wp.x_lat = lat 
 	wp.y_long = longi
@@ -221,8 +257,6 @@ def create_waypoints():
 	except rospy.ServiceException, e:
 	    print "Service call failed: %s" % e
 	
-
-
 
 
 
@@ -288,6 +322,15 @@ def singleWaypoint(except_lat,except_longi, except_alt):
 	
 
 
+
+
+
+
+
+
+
+
+
 if __name__ == '__main__':
 
 	rospy.init_node('waypoint_node', anonymous=True)
@@ -335,7 +378,11 @@ if __name__ == '__main__':
 					except rospy.ServiceException, e: # metin abi hold ona al dedi
 	 					
 	 					pass
-	
+			#print current_time % 2 >= 1.95
+			
+			
+
+			call_createWaypoints()
 	
 			#if (int(current_time) - int(start_time))>= 6:
 
