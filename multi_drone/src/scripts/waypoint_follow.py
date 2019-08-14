@@ -148,7 +148,7 @@ def call_back_coordinates(data):
 
 def call_createWaypoints():
 
-	global lat, longi, alt,temp,temp2,temp_time
+	global lat, longi, alt,yki_ilk_ucus,temp,temp2,temp_time
 	
 
 	current_time = time.time()
@@ -162,7 +162,7 @@ def call_createWaypoints():
 			create_waypoints()
 
 	else:
-		if yki_ilk_ucus_onay: # baslangic_ucusu gerceklesir ise true olacak. Bu baslangic ucusunun gerceklesmesi icin get_takeoff calismali 
+		if yki_ilk_ucus: # baslangic_ucusu gerceklesir ise true olacak. Bu baslangic ucusunun gerceklesmesi icin get_takeoff calismali 
 			get_takeoff()    # onun calismasi icin yki_ilk_ucus_onay true yani onay verilmesi lazim
 
 

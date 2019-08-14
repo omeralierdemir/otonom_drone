@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import rospy
+import mavros
 from std_msgs.msg import String
 
 
@@ -27,8 +28,8 @@ if __name__ == '__main__':
     pub = rospy.Publisher('yer_istasyonu', String, queue_size=10)
     # spin() simply keeps python from exiting until this node is stopped
 
-    while (not rospy.is_shutdown():
+    while not rospy.is_shutdown():
     
         x = raw_input("Enter your input: ");
-        pub.Publisher(x)
+        pub.publish(x)
         rate.sleep()

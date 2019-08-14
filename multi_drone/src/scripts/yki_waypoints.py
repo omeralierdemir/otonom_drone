@@ -13,7 +13,9 @@ from mavros_msgs.srv import *
 temp = 0 # gecici get_home cagrilmasi icin olusturulmus count degiskeni
 temp2 = 1
 baslangic_ucusu = 0
-yki_ilk_ucus_onay = 1 # simdilik true ayarlandi sonradan duzeltilmelidir.
+
+
+(yki_ilk_ucus, yki_savasa_basla, yki_hedef_takip, yki_saga_git, yki_sola_git, yki_ileri_git, yki_geri_git, yki_eve_don) = (0,0,0,0,0,0,0,0)
 
 home_alt = 0
 home_lat = 0
@@ -29,12 +31,21 @@ current_alt = 0#10
 current_lat = 0#47.3977417
 current_long = 0#8.5455943  # sonrada n / mavros/setpoint_possition/globala sucscriber oluancak
 start_time = 0
-ilk_ucus = 1 # bu ilk kez 1 edildiginde baslangic noktasi set edilmis olunur bu sayede get_home ve ilk ucus saglanir
-
+ilk_ucus_temp = 1 # bu ilk kez 1 edildiginde baslangic noktasi set edilmis olunur bu sayede get_home ve ilk ucus saglanir
+eve_don_temp = 0	
 current_state = State()
 msg = PositionTarget()
 
 
+def setArm():
+	rospy.wait_for_service('/uav1/mavros/cmd/arming')
+	try:
+		armService = rospy.ServiceProxy('/uav1/mavros/cmd/arming', mavros_msgs.srv.CommandBool)
+
+		armService(True)
+	except rospy.ServiceException, e: # metin abi hold ona al dedi
+	 					
+	 	pass
 
 def state_cb(state):
     global current_state
@@ -67,53 +78,85 @@ def setLandMode(altitude = 0, latitude = home_lat, longitude = home_longi, min_p
 def get_home():
 
 	global home_alt,home_longi,home_lat
-	global current_alt, current_lat, current_long
-	singleWaypoint(home_lat,home_longi,home_alt)# home_alt bu standart ilk ciktigi yukseklik
-	while True:
-		
-		if round(current_lat,5) == round(home_lat,5) and round(current_long,5) == round(home_longi,5):
-			print "break"
-			break
+	global current_alt, current_lat, current_long,eve_don_temp
 
-	setLandMode()
 
+	if eve_don_temp :
+		singleWaypoint(home_lat,home_longi,home_alt)# home_alt bu standart ilk ciktigi yukseklik
+		while True:
+			
+			if round(current_lat,5) == round(home_lat,5) and round(current_long,5) == round(home_longi,5):
+				print "break"
+				break
+
+		setLandMode()
+	eve_don_temp = 0
 
 def get_takeoff():
 
 	
-	global home_alt,home_longi,home_lat,baslangic_ucusu,ilk_ucus
+	global home_alt,home_longi,home_lat,baslangic_ucusu,ilk_ucus_temp
 	
-	singleWaypoint(home_lat,home_longi,home_alt)
+	if ilk_ucus_temp:
+		setArm()
+		singleWaypoint(home_lat,home_longi,home_alt)
 
-	while True:
+		while True:
 
-		if True: # yer istasyonundan veri gelene kadar bekle
-			print "beni birkere cagircak"
-			break
-	baslangic_ucusu = 1		# null veri gonderince yer istasyonu ne yaptigini test etmen lazim
-	ilk_ucus = 0 # bu ilk kez 1 edildiginde baslangic noktasi set edilmis olunur bu sayede get_home ve ilk ucus saglanir
-
-
-
-
-
+			if True: # yer istasyonundan veri gelene kadar bekle
+				print "beni birkere cagircak"
+				break
+		#baslangic_ucusu = 1		# null veri gonderince yer istasyonu ne yaptigini test etmen lazim
+	ilk_ucus_temp = 0 # bu ilk kez 1 edildiginde baslangic noktasi set edilmis olunur bu sayede get_home ve ilk ucus saglanir ve birden fazle bu metodun
+					#cagrilmasini onler
 
 
+
+
+
+
+
+
+
+
+
+def call_back_yki(data):
+	
+	global yki_ilk_ucus, yki_savasa_basla, yki_hedef_takip
+	global yki_saga_git, yki_sola_git, yki_ileri_git, yki_geri_git, yki_eve_don
+	
+	print data.data.split(",")
+
+	(yki_ilk_ucus, yki_savasa_basla, yki_hedef_takip, yki_saga_git, yki_sola_git, yki_ileri_git, yki_geri_git, yki_eve_don) = data.data.split(',')
+
+	(yki_ilk_ucus, yki_savasa_basla, yki_hedef_takip, yki_saga_git, yki_sola_git, yki_ileri_git, yki_geri_git, yki_eve_don) = (int(yki_ilk_ucus), int(yki_savasa_basla), int(yki_hedef_takip), int(yki_saga_git), int(yki_sola_git), int(yki_ileri_git), int(yki_geri_git), int(yki_eve_don))
+
+
+	# bak burada neleri set ettigine cok dikkat et yoksa sacma harektler yapar iha
+
+	if yki_eve_don:
+		print "hadi eve saat gec oldu"
+		(yki_ilk_ucus, yki_savasa_basla, yki_hedef_takip, yki_saga_git, yki_sola_git, yki_ileri_git, yki_geri_git, yki_eve_don) = (0,0,0,0,0,0,0,1)
+		eve_don_temp = 1
+	if yki_ilk_ucus:
+		ilk_ucus_temp = 1 # ilerisi icin tehlikeli bir kod mutlaka tarik hocaya danis. Bu islem ilk komutta drone kalkmazsa diye konuldu ykiden
+		             #gonderilen paketleri buna gore ayarla
+	print (yki_ilk_ucus, yki_savasa_basla, yki_hedef_takip, yki_saga_git, yki_sola_git, yki_ileri_git, yki_geri_git, yki_eve_don)
 
 
 
 
 def call_back_current_position(data):
 
-	global current_alt,current_lat,current_long, home_longi, home_lat, home_alt
+	global current_alt,current_lat,current_long, home_longi, home_lat, home_alt,ilk_ucus_temp
 
-	if ilk_ucus:
+	if ilk_ucus_temp:
 		#buraya seriportan istenen veri geldiyse kosulu konacak
 		home_lat =  data.latitude
 		home_longi = data.longitude
 		home_alt = 10.0 #baslangic yuksekligi 10m set edildi
 		
-		#print ("home paremetreleri set edildi", home_lat,home_longi,home_alt)
+		print ("home paremetreleri set edildi", home_lat,home_longi,home_alt)
 
 
 
@@ -148,12 +191,12 @@ def call_back_coordinates(data):
 
 def call_createWaypoints():
 
-	global lat, longi, alt,temp,temp2,temp_time
+	global lat, longi, alt,yki_ilk_ucus,yki_savasa_basla,temp,temp2,temp_time,basla
 	
 
 	current_time = time.time()
-
-	if baslangic_ucusu: # eger baslangic ucusu yapildi ise ve yki den veri geldiyse hedef konumlari olustur.
+	print "yki_savasa_basla,yki_ilk_ucus",yki_savasa_basla ,yki_ilk_ucus
+	if yki_savasa_basla: # eger baslangic ucusu yapildi ise ve yki den veri geldiyse hedef konumlari olustur.
 		
 		if current_time % 2 >= 1.97:
 			
@@ -161,11 +204,14 @@ def call_createWaypoints():
 			print("calbackdeki ",lat, longi, alt)
 			create_waypoints()
 
-	else:
-		if yki_ilk_ucus_onay: # baslangic_ucusu gerceklesir ise true olacak. Bu baslangic ucusunun gerceklesmesi icin get_takeoff calismali 
-			get_takeoff()    # onun calismasi icin yki_ilk_ucus_onay true yani onay verilmesi lazim
+	if yki_ilk_ucus: # baslangic_ucusu gerceklesir ise true olacak. Bu baslangic ucusunun gerceklesmesi icin get_takeoff calismali 
+		print "yki_ilk_ucus"
+		get_takeoff()    # onun calismasi icin yki_ilk_ucus_onay true yani onay verilmesi lazim
 
 
+	if yki_eve_don:
+
+		get_home()
 
 
 
@@ -183,7 +229,7 @@ def create_waypoints():
 	global start_time
 	global current_long
 	global current_lat
-	global ilk_ucus,temp,temp_time
+	global ilk_ucus_temp,temp,temp_time
 
 
 	temp_time = 0
@@ -252,7 +298,7 @@ def create_waypoints():
 	try:
 	    service = rospy.ServiceProxy('/uav1/mavros/mission/push', WaypointPush, persistent=True)
 	    service(start_index=0, waypoints=wl)
-	    #ilk_ucus = 0 # bu ilk kez 1 edildiginde baslangic noktasi set edilmis olunur bu sayede get_home ve ilk ucus saglanir
+	    #ilk_ucus_temp = 0 # bu ilk kez 1 edildiginde baslangic noktasi set edilmis olunur bu sayede get_home ve ilk ucus saglanir
 	  
 	except rospy.ServiceException, e:
 	    print "Service call failed: %s" % e
@@ -336,12 +382,14 @@ if __name__ == '__main__':
 	rospy.init_node('waypoint_node', anonymous=True)
 	mavros.set_namespace('mavros')
 	rate = rospy.Rate(20)
+	rate2 = rospy.Rate(10)
 	rospy.wait_for_service('/uav1/mavros/cmd/arming')
 	set_mode = rospy.ServiceProxy('/uav1/mavros/set_mode', mavros_msgs.srv.SetMode)
 	#set_mode(0,'MANUAL')
 	state_sub = rospy.Subscriber('/uav1/mavros/state', State, state_cb)
 	waypoint_clear_client()
 	rospy.Subscriber('waypoint_random', String, call_back_coordinates)
+	rospy.Subscriber('yer_istasyonu', String, call_back_yki)
 	rospy.Subscriber('/uav1/mavros/global_position/global', NavSatFix, call_back_current_position)  
 
 	try:
@@ -368,7 +416,7 @@ if __name__ == '__main__':
 
 			current_time = time.time()
 			#print(int(current_time) - int(start_time))
-
+			"""
 			if (int(current_time) - int(start_time2) == 3):
 					print "arm"
 					try:
@@ -381,9 +429,9 @@ if __name__ == '__main__':
 			#print current_time % 2 >= 1.95
 			
 			
-
+			"""
 			call_createWaypoints()
-	
+			rate2.sleep()
 			#if (int(current_time) - int(start_time))>= 6:
 
 			#	create_waypoints()
