@@ -80,8 +80,9 @@ def get_home():
 	global home_alt,home_longi,home_lat
 	global current_alt, current_lat, current_long,eve_don_temp
 
-
+	
 	if eve_don_temp :
+		print "hadi eve saat gec oldu"
 		singleWaypoint(home_lat,home_longi,home_alt)# home_alt bu standart ilk ciktigi yukseklik
 		while True:
 			
@@ -96,7 +97,7 @@ def get_takeoff():
 
 	
 	global home_alt,home_longi,home_lat,baslangic_ucusu,ilk_ucus_temp
-	
+	print "yki_ilk_ucus_temp", ilk_ucus_temp
 	if ilk_ucus_temp:
 		setArm()
 		singleWaypoint(home_lat,home_longi,home_alt)
@@ -124,6 +125,7 @@ def call_back_yki(data):
 	
 	global yki_ilk_ucus, yki_savasa_basla, yki_hedef_takip
 	global yki_saga_git, yki_sola_git, yki_ileri_git, yki_geri_git, yki_eve_don
+	global eve_don_temp, ilk_ucus_temp
 	
 	print data.data.split(",")
 
@@ -135,9 +137,12 @@ def call_back_yki(data):
 	# bak burada neleri set ettigine cok dikkat et yoksa sacma harektler yapar iha
 
 	if yki_eve_don:
-		print "hadi eve saat gec oldu"
+		
 		(yki_ilk_ucus, yki_savasa_basla, yki_hedef_takip, yki_saga_git, yki_sola_git, yki_ileri_git, yki_geri_git, yki_eve_don) = (0,0,0,0,0,0,0,1)
 		eve_don_temp = 1
+
+	if yki_savasa_basla:
+		yki_ilk_ucus = 0
 	if yki_ilk_ucus:
 		ilk_ucus_temp = 1 # ilerisi icin tehlikeli bir kod mutlaka tarik hocaya danis. Bu islem ilk komutta drone kalkmazsa diye konuldu ykiden
 		             #gonderilen paketleri buna gore ayarla
@@ -148,7 +153,9 @@ def call_back_yki(data):
 
 def call_back_current_position(data):
 
-	global current_alt,current_lat,current_long, home_longi, home_lat, home_alt,ilk_ucus_temp
+	global current_alt,current_lat,current_long
+	global home_longi, home_lat, home_alt
+	global ilk_ucus_temp
 
 	if ilk_ucus_temp:
 		#buraya seriportan istenen veri geldiyse kosulu konacak
@@ -191,11 +198,11 @@ def call_back_coordinates(data):
 
 def call_createWaypoints():
 
-	global lat, longi, alt,yki_ilk_ucus,yki_savasa_basla,temp,temp2,temp_time,basla
+	global lat, longi, alt,yki_ilk_ucus,yki_savasa_basla,temp,temp2,temp_time,basla,yki_eve_don
 	
 
 	current_time = time.time()
-	print "yki_savasa_basla,yki_ilk_ucus",yki_savasa_basla ,yki_ilk_ucus
+	print "yki_savasa_basla,yki_ilk_ucus,yki_eve_don",yki_savasa_basla ,yki_ilk_ucus,yki_eve_don
 	if yki_savasa_basla: # eger baslangic ucusu yapildi ise ve yki den veri geldiyse hedef konumlari olustur.
 		
 		if current_time % 2 >= 1.97:
@@ -205,13 +212,14 @@ def call_createWaypoints():
 			create_waypoints()
 
 	if yki_ilk_ucus: # baslangic_ucusu gerceklesir ise true olacak. Bu baslangic ucusunun gerceklesmesi icin get_takeoff calismali 
-		print "yki_ilk_ucus"
+		
 		get_takeoff()    # onun calismasi icin yki_ilk_ucus_onay true yani onay verilmesi lazim
 
 
 	if yki_eve_don:
-
+		
 		get_home()
+		yki_eve_don = 0
 
 
 
