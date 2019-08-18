@@ -123,7 +123,7 @@ def call_back_current_position(data):
 
 def call_back_coordinates(data):
 
-	global lat, longi, alt,temp,temp2,temp_time
+	global lat, longi, alt, temp, temp2, temp_time
 	#print data.data
 	#temp = temp + 1 #bu degisken eve donus testi icin olusturuldu. 7 call_back cagrisindan sonra eve donmesi planlandi test icin
 	
@@ -148,7 +148,7 @@ def call_back_coordinates(data):
 
 def call_createWaypoints():
 
-	global lat, longi, alt,yki_ilk_ucus,temp,temp2,temp_time
+	global lat, longi, alt, temp, temp2, temp_time
 	
 
 	current_time = time.time()
@@ -162,7 +162,7 @@ def call_createWaypoints():
 			create_waypoints()
 
 	else:
-		if yki_ilk_ucus: # baslangic_ucusu gerceklesir ise true olacak. Bu baslangic ucusunun gerceklesmesi icin get_takeoff calismali 
+		if yki_ilk_ucus_onay: # baslangic_ucusu gerceklesir ise true olacak. Bu baslangic ucusunun gerceklesmesi icin get_takeoff calismali 
 			get_takeoff()    # onun calismasi icin yki_ilk_ucus_onay true yani onay verilmesi lazim
 
 
@@ -181,8 +181,8 @@ def call_createWaypoints():
 
 def create_waypoints():
 	global start_time
-	global current_long
-	global current_lat
+	global current_long, current_lat
+	global lat, longi, alt
 	global ilk_ucus,temp,temp_time
 
 
@@ -262,7 +262,9 @@ def create_waypoints():
 
 def singleWaypoint(except_lat,except_longi, except_alt):
 	
-
+	global lat,longi,alt
+	global current_lat, current_long, current_alt
+	
 	rate = rospy.Rate(20)
 
 	wl = []

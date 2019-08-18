@@ -23,15 +23,15 @@ home_longi = 0
 
 temp_time = 0
 
-alt = home_alt
-lat = home_lat
-longi = home_longi 
+alt = 0
+lat = 0
+longi = 0 
 
 current_alt = 0#10
 current_lat = 0#47.3977417
 current_long = 0#8.5455943  # sonrada n / mavros/setpoint_possition/globala sucscriber oluancak
 start_time = 0
-ilk_ucus_temp = 1 # bu ilk kez 1 edildiginde baslangic noktasi set edilmis olunur bu sayede get_home ve ilk ucus saglanir
+ilk_ucus_temp = 0 # bu ilk kez 1 edildiginde baslangic noktasi set edilmis olunur bu sayede get_home ve ilk ucus saglanir
 eve_don_temp = 0	
 current_state = State()
 msg = PositionTarget()
@@ -46,6 +46,7 @@ def setArm():
 	except rospy.ServiceException, e: # metin abi hold ona al dedi
 	 					
 	 	pass
+
 
 def state_cb(state):
     global current_state
@@ -96,9 +97,14 @@ def get_home():
 def get_takeoff():
 
 	
-	global home_alt,home_longi,home_lat,baslangic_ucusu,ilk_ucus_temp
+	global home_alt, home_longi, home_lat
+	global baslangic_ucusu, ilk_ucus_temp
+	
+
+
 	print "yki_ilk_ucus_temp", ilk_ucus_temp
 	if ilk_ucus_temp:
+		print " take offfffffffffffffff"
 		setArm()
 		singleWaypoint(home_lat,home_longi,home_alt)
 
@@ -114,7 +120,11 @@ def get_takeoff():
 
 
 
+def sudden_right():
 
+	global current_alt, current_lat, current_long
+
+	singleWaypoint(current_lat,current_long,current_alt)
 
 
 
@@ -129,16 +139,30 @@ def call_back_yki(data):
 	
 	print data.data.split(",")
 
-	(yki_ilk_ucus, yki_savasa_basla, yki_hedef_takip, yki_saga_git, yki_sola_git, yki_ileri_git, yki_geri_git, yki_eve_don) = data.data.split(',')
+	
+	(ilk_ucus, savasa_basla, hedef_takip, saga_git, sola_git, ileri_git, geri_git, eve_don) = data.data.split(',')
 
-	(yki_ilk_ucus, yki_savasa_basla, yki_hedef_takip, yki_saga_git, yki_sola_git, yki_ileri_git, yki_geri_git, yki_eve_don) = (int(yki_ilk_ucus), int(yki_savasa_basla), int(yki_hedef_takip), int(yki_saga_git), int(yki_sola_git), int(yki_ileri_git), int(yki_geri_git), int(yki_eve_don))
-
-
+	yki_ilk_ucus = int(ilk_ucus)
+	yki_savasa_basla = int(savasa_basla)
+	yki_hedef_takip = int(hedef_takip)
+	yki_saga_git = int(saga_git)
+	yki_sola_git = int(sola_git)
+	yki_ileri_git = int(ileri_git)
+	yki_geri_git = int(geri_git)
+	yki_eve_don = int(eve_don)
 	# bak burada neleri set ettigine cok dikkat et yoksa sacma harektler yapar iha
 
 	if yki_eve_don:
 		
-		(yki_ilk_ucus, yki_savasa_basla, yki_hedef_takip, yki_saga_git, yki_sola_git, yki_ileri_git, yki_geri_git, yki_eve_don) = (0,0,0,0,0,0,0,1)
+		yki_ilk_ucus = 0
+		yki_savasa_basla = 0
+		yki_hedef_takip = 0
+		yki_saga_git = 0
+		yki_sola_git = 0
+		yki_ileri_git = 0
+		yki_geri_git = 0
+		yki_eve_don = 1
+
 		eve_don_temp = 1
 
 	if yki_savasa_basla:
@@ -146,6 +170,7 @@ def call_back_yki(data):
 	if yki_ilk_ucus:
 		ilk_ucus_temp = 1 # ilerisi icin tehlikeli bir kod mutlaka tarik hocaya danis. Bu islem ilk komutta drone kalkmazsa diye konuldu ykiden
 		             #gonderilen paketleri buna gore ayarla
+		print "3.ifdeyim"
 	print (yki_ilk_ucus, yki_savasa_basla, yki_hedef_takip, yki_saga_git, yki_sola_git, yki_ileri_git, yki_geri_git, yki_eve_don)
 
 
@@ -203,19 +228,24 @@ def call_createWaypoints():
 
 	current_time = time.time()
 	print "yki_savasa_basla,yki_ilk_ucus,yki_eve_don",yki_savasa_basla ,yki_ilk_ucus,yki_eve_don
+
+	if yki_ilk_ucus: # baslangic_ucusu gerceklesir ise true olacak. Bu baslangic ucusunun gerceklesmesi icin get_takeoff calismali 
+		
+		
+
+		get_takeoff()    # onun calismasi icin yki_ilk_ucus_onay true yani onay verilmesi lazim
+
+
+
 	if yki_savasa_basla: # eger baslangic ucusu yapildi ise ve yki den veri geldiyse hedef konumlari olustur.
 		
-		if current_time % 2 >= 1.97:
+		if current_time % 2 >= 1.9:
 			
 			print "create_waypoints cagrildi"
 			print("calbackdeki ",lat, longi, alt)
 			create_waypoints()
 
-	if yki_ilk_ucus: # baslangic_ucusu gerceklesir ise true olacak. Bu baslangic ucusunun gerceklesmesi icin get_takeoff calismali 
-		
-		get_takeoff()    # onun calismasi icin yki_ilk_ucus_onay true yani onay verilmesi lazim
-
-
+	
 	if yki_eve_don:
 		
 		get_home()
@@ -238,6 +268,7 @@ def create_waypoints():
 	global current_long
 	global current_lat
 	global ilk_ucus_temp,temp,temp_time
+	global lat,longi,alt
 
 
 	temp_time = 0
@@ -287,8 +318,8 @@ def create_waypoints():
 	wp.is_current = True
  	wp.autocontinue = False
 	wp.param1 = 0  # delay 
-	#wp.param2 = 0
-	wp.param3 = 0
+	wp.param2 = 0
+	wp.param3 = 1
 	wp.param4 = yaw
 	wp.x_lat = lat 
 	wp.y_long = longi
@@ -316,7 +347,8 @@ def create_waypoints():
 
 def singleWaypoint(except_lat,except_longi, except_alt):
 	
-
+	global current_lat, current_long, current_alt
+	global lat, longi, alt
 	rate = rospy.Rate(20)
 
 	wl = []
@@ -333,7 +365,7 @@ def singleWaypoint(except_lat,except_longi, except_alt):
 	
 	yaw =  (tan / math.pi) * 180
 	
-	print("lat: " ,y_eksen," long : ",x_eksen)
+	print("except_lat : " ,y_eksen," except_lat : ",x_eksen)
 	print("tanjant: ", tan)
 
 	
@@ -357,14 +389,13 @@ def singleWaypoint(except_lat,except_longi, except_alt):
 	wp.is_current = True
  	wp.autocontinue = False
 	wp.param1 = 0  # delay 
-	#wp.param2 = 0
+	wp.param2 = 0
 	wp.param3 = 1
 	wp.param4 = yaw
 	wp.x_lat = except_lat 
 	wp.y_long =except_longi
 	wp.z_alt = except_alt 
 	wl.append(wp)
-
 
 	try:
 	    service = rospy.ServiceProxy('/uav1/mavros/mission/push', WaypointPush, persistent=True)

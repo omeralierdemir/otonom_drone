@@ -40,9 +40,8 @@ def call_back_current_position(data):
 	current_lat =  data.latitude
 	current_long = data.longitude
 
-	if current_time % 1 >= 0.9:
-		coordinates = str(current_lat) + "," + str(current_long) + "," + str(current_alt)
-		pub.publish(coordinates)
+	
+		
 
 def waypoint_clear_client():
         try:
@@ -147,8 +146,7 @@ def create_waypoints():
        
 if __name__ == '__main__':
 
-	global pub
-
+	arm_temp = 1
 
 	rospy.init_node('waypoint_random', anonymous=True)
 	mavros.set_namespace('mavros')
@@ -172,14 +170,31 @@ if __name__ == '__main__':
 	
 		start_time = time.time()
 		start_time2 = time.time()
-
+		start_time3 = time.time()
 		
 		while not rospy.is_shutdown():
 
 			current_time = time.time()
 			#print(int(current_time) - int(start_time))
 
-			if (int(current_time) - int(start_time2) == 1):
+			
+			"""	
+				try:
+					takeoffService = rospy.ServiceProxy('/mavros/cmd/takeoff', mavros_msgs.srv.CommandTOL) 
+					takeoffService(altitude = 2, latitude = 0, longitude = 0, min_pitch = 0, yaw = 0)
+				except rospy.ServiceException, e: # metin abi hold ona al dedi
+						
+						pass
+			"""
+			if (current_time - start_time3)>= 0.2:
+				
+				start_time3 = time.time()
+				coordinates = str(current_lat) + "," + str(current_long) + "," + str(current_alt)
+				pub.publish(coordinates)
+
+			if (int(current_time) - int(start_time))>= 2:
+
+				if arm_temp:
 
 					print "if deyim"
 					try:
@@ -188,16 +203,7 @@ if __name__ == '__main__':
 					except rospy.ServiceException, e: # metin abi hold ona al dedi
 	 					
 	 					pass
-	 				"""	
-					try:
-						takeoffService = rospy.ServiceProxy('/mavros/cmd/takeoff', mavros_msgs.srv.CommandTOL) 
-						takeoffService(altitude = 2, latitude = 0, longitude = 0, min_pitch = 0, yaw = 0)
-					except rospy.ServiceException, e: # metin abi hold ona al dedi
-	 					
-	 					pass
-					"""
-			if (int(current_time) - int(start_time))>= 4:
-
+	 				arm_temp = 0	
 				create_waypoints()
 				#print(start_time)
 
