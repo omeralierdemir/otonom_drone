@@ -124,14 +124,7 @@ def create_waypoints():
 	
 	start_time3 = time.time()
 	if condition_waypoint:
-		while True:
-			print "way deyim haci"
-			current_time3 = time.time()	
-			if int(current_time3) - int(start_time3) >= 2:
-				print
-				break	
-			#print "zaman ", int(current_time3) - int(start_time)
-		
+	
 		waypoint_clear_client()
 
 		start_time2 = time.time()
