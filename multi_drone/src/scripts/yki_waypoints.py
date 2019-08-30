@@ -19,9 +19,7 @@ condition_waypoint = 1
 
 (yki_ilk_ucus, yki_savasa_basla, yki_hedef_takip, yki_saga_git, yki_sola_git, yki_ileri_git, yki_geri_git, yki_eve_don) = (0,0,0,0,0,0,0,0)
 
-home_alt = 0
-home_lat = 0
-home_longi = 0
+
 
 baglanti_koptu_temp = 1
 
@@ -35,6 +33,10 @@ gps_yenilenme_zamani = 0
 current_alt = 0#10
 current_lat = 0#47.3977417
 current_long = 0#8.5455943  # sonrada n / mavros/setpoint_possition/globala sucscriber oluancak
+
+home_alt = current_alt
+home_lat = current_lat
+home_longi = current_long  # sebebi bazen yeniden baslatmak gerekir. baslangic noktasi havada iken ilk olarak atansin
 
 ilk_ucus_temp = 0 # bu ilk kez 1 edildiginde baslangic noktasi set edilmis olunur bu sayede get_home ve ilk ucus saglanir
 eve_don_temp = 0	
@@ -118,9 +120,9 @@ def get_takeoff():
 
 	
 	global home_alt, home_longi, home_lat
-	global baslangic_ucusu, ilk_ucus_temp
+	global baslangic_ucusu, ilk_ucus_temp, baglanti_koptu_temp 
 	
-
+	baglanti_koptu_temp = 1
 
 	print "yki_ilk_ucus_temp", ilk_ucus_temp
 	if ilk_ucus_temp:
@@ -147,59 +149,43 @@ def sudden_right():
 	singleWaypoint(current_lat,current_long,current_alt)
 
 
-def call_back_pid(pid_data):
-	global axis_z, axis_r, axis_yaw, msg
-	global pid_wait, condition_waypoint
-
-	pub = rospy.Publisher('/uav1/mavros/setpoint_raw/local', PositionTarget,queue_size=10)
-	set_mode = rospy.ServiceProxy('/uav1/mavros/set_mode', mavros_msgs.srv.SetMode)
-	#set_mode(0,'MANUAL')
-	
-
-	msg.header.stamp = rospy.Time.now()
-	msg.header.frame_id = "world"
-	msg.coordinate_frame = PositionTarget.FRAME_BODY_NED
-	msg.type_mask = PositionTarget.IGNORE_PX | PositionTarget.IGNORE_PY | PositionTarget.IGNORE_PZ | PositionTarget.IGNORE_AFX | PositionTarget.IGNORE_AFY | PositionTarget.IGNORE_AFZ | PositionTarget.IGNORE_YAW_RATE
-
-	
-	if pid_data.data != "null": # buraya birde ekranda ne kadar yer kapladigi kosunu koy
-
-		print "pid geciyom haci"
-		condition_waypoint = 0
-		rate = rospy.Rate(20)
-		(axis_z, axis_r, axis_yaw) = pid_data.data.split(",") 
-		(axis_z, axis_r, axis_yaw) = (float(axis_z), float(axis_r), float(axis_yaw))
-		print(axis_z, axis_r, axis_yaw)
-		msg.velocity.x = 0.0
-		msg.velocity.y = axis_r
-		msg.velocity.z = axis_z
-		msg.yaw = axis_yaw
-		pid_wait = time.time()
-
-		pub.publish(msg)
-		rate.sleep()#buna cok gerek olmayabilir. hesapla ne kadar geciktigini
 
 
-		while current_state.mode != "OFFBOARD":
-			waypoint_clear_client()
-			pub.publish(msg)
-			rate.sleep()#buna cok gerek olmayabilir. hesapla ne kadar geciktigini
-			#pub.publish(msg)
-			#print "buradasin auto"
-			rospy.loginfo("OFFBOARD mod istegi gonderildi")
-			 
-			set_mode(0,'OFFBOARD')
-			#rospy.loginfo("AUTO.MISSION mod istegi gonderildi")
-			
-			rate.sleep()
+def call_back_current_position(data):
+
+	global current_alt,current_lat,current_long
+	global home_longi, home_lat, home_alt
+	global ilk_ucus_temp
+	global gps_yenilenme_zamani
+	global yki_sola_git
+
+	if ilk_ucus_temp:
+		#buraya seriportan istenen veri geldiyse kosulu konacak
+		home_lat =  data.latitude
+		home_longi = data.longitude
+		home_alt = 10.0 #baslangic yuksekligi 10m set edildi
 		
-	else:
-		current_time4 = time.time()
-		
-		if current_time4 - pid_wait >= 3: # eger 3 sn boyunca hedef iha yok ise ekranda waypoint ile arama yap bu zamanlada sikinti olabilir
+		print ("home paremetreleri set edildi", home_lat,home_longi,home_alt)
 
-			condition_waypoint = 1
-			print "way pointe geciyom haci"
+	if yki_sola_git == 0:
+
+		current_lat =  data.latitude
+		current_long = data.longitude
+		gps_yenilenme_zamani = time.time()
+		
+
+def call_back_coordinates(data):
+
+	global lat, longi, alt
+	global baglanti_yenilenme_zamani
+
+ 	(t_lat, t_longi, t_alt) = data.data.split(",")
+ 	
+ 	(lat, longi, alt) = (float(t_lat), float(t_longi), float(t_alt))
+
+ 	baglanti_yenilenme_zamani = time.time()
+ 	
+	
 
 
 
@@ -248,41 +234,75 @@ def call_back_yki(data):
 
 
 
-def call_back_current_position(data):
 
-	global current_alt,current_lat,current_long
-	global home_longi, home_lat, home_alt
-	global ilk_ucus_temp
-	global gps_yenilenme_zamani
+def call_back_pid(pid_data):
+	global axis_z, axis_r, axis_yaw, msg
+	global pid_wait, condition_waypoint
+	global yki_savasa_basla
 
-	if ilk_ucus_temp:
-		#buraya seriportan istenen veri geldiyse kosulu konacak
-		home_lat =  data.latitude
-		home_longi = data.longitude
-		home_alt = 10.0 #baslangic yuksekligi 10m set edildi
+	pub = rospy.Publisher('/uav1/mavros/setpoint_raw/local', PositionTarget,queue_size=10)
+	set_mode = rospy.ServiceProxy('/uav1/mavros/set_mode', mavros_msgs.srv.SetMode)
+	#set_mode(0,'MANUAL')
+	rate = rospy.Rate(20)
+
+	msg.header.stamp = rospy.Time.now()
+	msg.header.frame_id = "world"
+	msg.coordinate_frame = PositionTarget.FRAME_BODY_NED
+	msg.type_mask = PositionTarget.IGNORE_PX | PositionTarget.IGNORE_PY | PositionTarget.IGNORE_PZ | PositionTarget.IGNORE_AFX | PositionTarget.IGNORE_AFY | PositionTarget.IGNORE_AFZ | PositionTarget.IGNORE_YAW_RATE
+
+	
+	if pid_data.data != "null" and yki_savasa_basla == 1: # buraya birde ekranda ne kadar yer kapladigi kosunu koy
+
+		print "pid geciyom haci"
+		condition_waypoint = 0
 		
-		print ("home paremetreleri set edildi", home_lat,home_longi,home_alt)
+		(axis_z, axis_r, axis_yaw) = pid_data.data.split(",") 
+		(axis_z, axis_r, axis_yaw) = (float(axis_z), float(axis_r), float(axis_yaw))
+		print(axis_z, axis_r, axis_yaw)
+		msg.velocity.x = 0.0
+		msg.velocity.y = axis_r
+		msg.velocity.z = axis_z
+		msg.yaw = axis_yaw
+		pid_wait = time.time()
+
+		pub.publish(msg)
+		rate.sleep()#buna cok gerek olmayabilir. hesapla ne kadar geciktigini
 
 
+		while current_state.mode != "OFFBOARD":
+			waypoint_clear_client()
+			pub.publish(msg)
+			rate.sleep()#buna cok gerek olmayabilir. hesapla ne kadar geciktigini
+			#pub.publish(msg)
+			#print "buradasin auto"
+			rospy.loginfo("OFFBOARD mod istegi gonderildi")
+			 
+			set_mode(0,'OFFBOARD')
+			#rospy.loginfo("AUTO.MISSION mod istegi gonderildi")
+			
+			rate.sleep()
+		
+	else:
+		current_time4 = time.time()
+		
+		if current_time4 - pid_wait >= 3 and yki_savasa_basla == 1: # eger 3 sn boyunca hedef iha yok ise ekranda waypoint ile arama yap bu zamanlada sikinti olabilir
 
-	current_lat =  data.latitude
-	current_long = data.longitude
-	gps_yenilenme_zamani = time.time()
+			
+			while current_state.mode != "AUTO.MISSION":
+					
+				rospy.loginfo("AUTO.MISSION mod istegi gonderildi")
+				 
+				set_mode(0,'AUTO.MISSION')
+				#rospy.loginfo("AUTO.MISSION mod istegi gonderildi")
+				
+				rate.sleep()		
+
 	
+			condition_waypoint = 1
+			#print "way pointe geciyom haci"
 
-def call_back_coordinates(data):
 
-	global lat, longi, alt
-	global baglanti_yenilenme_zamani
 
- 	(t_lat, t_longi, t_alt) = data.data.split(",")
- 	
- 	(lat, longi, alt) = (float(t_lat), float(t_longi), float(t_alt))
-
- 	baglanti_yenilenme_zamani = time.time()
- 	print "ajan"
-
-	
 
 	
 
@@ -293,8 +313,9 @@ def call_createWaypoints():
 	global lat, longi, alt
 	global yki_ilk_ucus, yki_savasa_basla, yki_eve_don
 	global baglanti_yenilenme_zamani, baglanti_koptu_temp, gps_yenilenme_zamani # baglanti_koptu_temp get_home()  metodunun birkere cagrilamsi icin
-																				# olusturuldu.
+	global eve_don_temp																		# olusturuldu.
 	
+
 
 	current_time = time.time()
 	print "yki_savasa_basla,yki_ilk_ucus,yki_eve_don",yki_savasa_basla ,yki_ilk_ucus,yki_eve_don
@@ -309,7 +330,7 @@ def call_createWaypoints():
 
 	if yki_savasa_basla: # eger baslangic ucusu yapildi ise ve yki den veri geldiyse hedef konumlari olustur.
 		
-		if current_time % 2 >= 1.9 and condition_waypoint:
+		if current_time % 2 >= 1.9 and condition_waypoint == 1:
 			
 			print "create_waypoints cagrildi"
 			print("calbackdeki ",lat, longi, alt)
@@ -317,26 +338,33 @@ def call_createWaypoints():
 
 	
 	if yki_eve_don:
-		
+		print "zamaninda cok konustum faydasini gormedim"
 		get_home()
 		yki_eve_don = 0
-
-	print "cuurent time : ",current_time, baglanti_yenilenme_zamani, "----", gps_yenilenme_zamani , " -oooooo- ", current_time- baglanti_yenilenme_zamani
+	
+	print "cuurent time : ",current_time, baglanti_yenilenme_zamani, "----", gps_yenilenme_zamani , " -oooooo- ", current_time- baglanti_yenilenme_zamani,baglanti_koptu_temp == 1
 	#print current_time - baglanti_yenilenme_zamani, " -----" , current_time - gps_yenilenme_zamani
 	
 
-	if current_time - baglanti_yenilenme_zamani >= 20.0 and baglanti_koptu_temp == 1: # eger baglanti kopar ise 20 saniye sonra eve don bunu yer istasyonuna sucscreber
+	if current_time - baglanti_yenilenme_zamani >= 10.0 and baglanti_koptu_temp == 1 and yki_savasa_basla == 1: # eger baglanti kopar ise 20 saniye sonra eve don bunu yer istasyonuna sucscreber
 															# oldugun her metotda kullanabilirsin
 		print "ifdeyim baglanti koptu"															
-		get_home()
-		yki_eve_don = 0
+		#get_home()
+		#yki_eve_don = 0
+		yki_ilk_ucus = 0
+		yki_savasa_basla = 0
+		yki_eve_don = 1
 		baglanti_koptu_temp = 0
+		eve_don_temp = 1 # eve don cagrilabilmesi icin lazim
 
 
-	if current_time - gps_yenilenme_zamani >= 10.0: # eger gps baglantisi kopar ise 10 saniye sonra inise gec
+	if current_time - gps_yenilenme_zamani >= 10.0 and yki_savasa_basla == 1: # eger gps baglantisi kopar ise 10 saniye sonra inise gec
 
+		print "gps baglantisi koptuuuu"
 		setLandMode()
-
+		yki_ilk_ucus = 0
+		yki_savasa_basla = 0
+		yki_eve_don = 0
     
 
 

@@ -110,19 +110,33 @@ def create_waypoints():
 
 	
 	
+	wp2 = Waypoint()
+	wp2.frame = 3
+	wp2.command = 115  #Navigate to waypoint.
+	#wp2.is_current = True
+ 	#wp2.autocontinue = False
+	wp2.param1 = 90  # delay 
+	#wp.param2 = 0
+	wp2.param3 = -1
+	wp2.param4 = 1
+	
+	wl.append(wp2)
+	"""
 	wp = Waypoint()
 	wp.frame = 3
 	wp.command = 16  #Navigate to waypoint.
 	wp.is_current = True
  	wp.autocontinue = False
 	wp.param1 = 0  # delay 
-	wp.param2 = 0
-	wp.param3 = 1
-	wp.param4 = yaw
+	#wp.param2 = 0
+	#wp.param3 = 1
+	#wp.param4 = yaw
 	wp.x_lat = lat 
 	wp.y_long = longi
 	wp.z_alt = alt
 	wl.append(wp)
+
+	"""	
 
 
 	#print(wl)
@@ -144,7 +158,7 @@ def create_waypoints():
 if __name__ == '__main__':
 
 	rospy.init_node('waypoint_node', anonymous=True)
-	mavros.set_namespace('mavros')
+	mavros.set_namespace('/uav1/mavros')
 	rate = rospy.Rate(20)
 	rospy.wait_for_service('/uav1/mavros/cmd/arming')
 	set_mode = rospy.ServiceProxy('/uav1/mavros/set_mode', mavros_msgs.srv.SetMode)

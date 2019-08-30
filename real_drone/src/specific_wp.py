@@ -22,7 +22,7 @@ current_long = 0
 current_alt = 10
 
 
-waypoint_list1 = [[old_lat,old_long,old_alt],[old_lat+0.00004,old_long+0.00007,old_alt],[old_lat-0.00004,old_long-0.00007,old_alt],[old_lat-0.00004,old_long+0.00007,old_alt],[old_lat+0.00004,old_long-0.00007,old_alt]] # [[lat1,long1,alt1],[lat2,long2,alt2]....]
+waypoint_list1 = [[old_lat,old_long,old_alt],[old_lat+0.00004,old_long+0.00007,old_alt],[old_lat-0.00004,old_long-0.00007,old_alt],[old_lat-0.00004,old_long+0.00007,old_alt],[old_lat+0.00004,old_long-0.00007,old_alt],[old_lat,old_long,old_alt]] # [[lat1,long1,alt1],[lat2,long2,alt2]....]
 
 
 def chooseWaypoits():
