@@ -7,8 +7,10 @@ import mavros
 import math
 from std_msgs.msg import String
 from sensor_msgs.msg import NavSatFix
+from nav_msgs.msg import Odometry
 from mavros_msgs.msg import *
 from mavros_msgs.srv import *
+
 
 
 current_state = State()
@@ -24,7 +26,11 @@ target_alt = 0
 target_lat = 0
 target_long = 0 
 
+positionX = 0
+positionY = 0
+positionZ = 0
 
+lastErrorY = 0
 
 
 
@@ -34,6 +40,19 @@ def state_cb(state):
 
 
 
+
+
+def get_rotation(msg):
+    global positionX, positionY, positionZ
+    #    print msg.pose.pose.orientation
+    position_q = msg.pose.pose.position
+    
+    (positionX, positionY, positionZ) = (position_q.x, position_q.y, position_q.z)
+   
+    
+    
+  
+    # print "yaw_degrees HAS " , yaw_degrees
 
 def set_single_position(desired_x=0, desired_y=0, desired_z=10):
 
@@ -111,7 +130,7 @@ def call_back_coordinates(data):
  	(target_lat, target_long, target_alt) = (float(t_lat), float(t_longi), float(t_alt))
 
  	baglanti_yenilenme_zamani = time.time()
- 	
+
  	
  	
 	#print(target_lat, target_long, target_alt) 	
@@ -123,7 +142,10 @@ def flight_controller(follow_speed= 3.0):
 
 	global current_lat, current_long, current_alt
 	global ilk_ucus_temp
-	global target_lat, target_long, target_alt,msg
+	global target_lat, target_long, target_alt
+	global positionZ 
+	global msg
+	global lastErrorY
 
 
 	pub = rospy.Publisher('/uav1/mavros/setpoint_raw/local', PositionTarget,queue_size=10)
@@ -132,8 +154,18 @@ def flight_controller(follow_speed= 3.0):
 	rate = rospy.Rate(20)
 
 
+	errorY = target_alt - positionZ
 
+	kp = 1.0/80.0#0.02 #1.0/100.0 -----> 1/ 80.0  max hiz 3~2 m/s
+	kd = 1.0/75.0#0.012#1.0/150.0 -----> 1.0/75.0
+
+	turevY = errorY-lastErrorY
+	yukselmeY =  errorY*kp + turevY*kd
+	msg.velocity.z = yukselmeY
 	
+	lastErrorY = errorY
+
+	print target_alt, positionZ
 
 	y_eksen = target_lat - current_lat #burada direk r1* 0.00001 i esitlenebilir ama hatirlanman icin boyle yaptin 
 	x_eksen = (target_long - current_long) * 400/700 # ayni scalayacektik enlem ile boylami (yaklasik olarak)
@@ -154,7 +186,7 @@ def flight_controller(follow_speed= 3.0):
 
 	msg.velocity.x = 0.0
 	msg.velocity.y = 5.0#follow_speed # suankil 4m/s sonradan arguman olarak yer istasyonundan alinacak (float)
-	msg.velocity.z = 0 # suanlik 0 sonradan konrolcu eklenecek
+	msg.velocity.z = 0.0#yukselmeY # suanlik 0 sonradan konrolcu eklenecek
 	msg.yaw = yaw_radyan
 	pid_wait = time.time()
 	rate.sleep()
@@ -191,6 +223,7 @@ if __name__ == '__main__':
 	#rospy.Subscriber('yer_istasyonu', String, call_back_yki)
 	rospy.Subscriber('/uav1/mavros/global_position/global', NavSatFix, call_back_current_position)  
 	#rospy.Subscriber('get_pid', String, call_back_pid)
+	rospy.Subscriber('/uav1/mavros/local_position/odom', Odometry, get_rotation)
 
 
 	try:
