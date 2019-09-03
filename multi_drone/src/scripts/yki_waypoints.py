@@ -250,7 +250,7 @@ def call_back_pid(pid_data):
 	msg.coordinate_frame = PositionTarget.FRAME_BODY_NED
 	msg.type_mask = PositionTarget.IGNORE_PX | PositionTarget.IGNORE_PY | PositionTarget.IGNORE_PZ | PositionTarget.IGNORE_AFX | PositionTarget.IGNORE_AFY | PositionTarget.IGNORE_AFZ | PositionTarget.IGNORE_YAW_RATE
 
-	
+	r = False
 	if pid_data.data != "null" and yki_savasa_basla == 1: # buraya birde ekranda ne kadar yer kapladigi kosunu koy
 
 		print "pid geciyom haci"
@@ -285,7 +285,7 @@ def call_back_pid(pid_data):
 	else:
 		current_time4 = time.time()
 		
-		if current_time4 - pid_wait >= 3 and yki_savasa_basla == 1: # eger 3 sn boyunca hedef iha yok ise ekranda waypoint ile arama yap bu zamanlada sikinti olabilir
+		if current_time4 - pid_wait >= 3 and yki_savasa_basla == 1 and r : # eger 3 sn boyunca hedef iha yok ise ekranda waypoint ile arama yap bu zamanlada sikinti olabilir
 
 			
 			while current_state.mode != "AUTO.MISSION":

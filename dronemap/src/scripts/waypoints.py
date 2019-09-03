@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
+import mavros
 from std_msgs.msg import String
 from sensor_msgs.msg import NavSatFix
 from mavros_msgs.msg import *
@@ -111,7 +112,7 @@ def create_waypoint():
 	print(wl)
 	
 	try:
-	    service = rospy.ServiceProxy('mavros/mission/push', WaypointPush, persistent=True)
+	    service = rospy.ServiceProxy('/uav1/mavros/mission/push', WaypointPush, persistent=True)
 	    service(start_index=0, waypoints=wl)
 	    
 
@@ -130,7 +131,7 @@ def create_waypoint():
 
 def waypoint_clear_client():
         try:
-            response = rospy.ServiceProxy('mavros/mission/clear', WaypointClear)
+            response = rospy.ServiceProxy('/uav1/mavros/mission/clear', WaypointClear)
             return response.call().success
         except rospy.ServiceException, e:
             print "Service call failed: %s" % e
@@ -141,5 +142,18 @@ if __name__ == '__main__':
 	rospy.init_node('waypoint_node', anonymous=True)
 	pub = rospy.Publisher('global',String,queue_size=10)
 	konum = "suan buradasin" # to be used later
+
+
+	rate = rospy.Rate(20)
+	mavros.set_namespace('/uav1/mavros')
+	rospy.wait_for_service('/uav1/mavros/cmd/arming')
+
+
+
+	try:
+		armService = rospy.ServiceProxy('/uav1/mavros/cmd/arming', mavros_msgs.srv.CommandBool)
+		armService(True)
+	except rospy.ServiceException, e:
+	 	pass
 	pub.publish(konum)
 	create_waypoint()

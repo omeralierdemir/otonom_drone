@@ -192,7 +192,7 @@ if __name__ == '__main__':
 				coordinates = str(current_lat) + "," + str(current_long) + "," + str(current_alt)
 				pub.publish(coordinates)
 
-			if (int(current_time) - int(start_time))>= 2:
+			if (int(current_time) - int(start_time))>= 1:
 
 				if arm_temp:
 
