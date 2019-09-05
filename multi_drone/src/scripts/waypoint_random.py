@@ -57,6 +57,7 @@ def create_waypoints():
 	global start_time
 	global old_long
 	global old_lat
+	global current_alt
 
 	rate = rospy.Rate(0.3)
 
@@ -70,7 +71,9 @@ def create_waypoints():
 	
 	r1 = random.randint(-9,9)  # gecici cozum
 	r2 = random.randint(-9,9)
-	altitude = 10
+	r3 = random.randint(1,20)
+	altitude = r3
+	current_alt = r3
 	start_time2 = time.time()
 	current_time2 = time.time()
 
@@ -78,7 +81,8 @@ def create_waypoints():
 		r1 = 1
 	if r2 == 0:
 		r2 = 1
-	
+	if r3 == 0:
+		r2 = 1
 	r1 = r1*2
 	r2 = r2*2
 

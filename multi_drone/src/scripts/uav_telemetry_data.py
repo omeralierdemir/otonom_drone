@@ -84,6 +84,7 @@ if __name__ == '__main__':
 	rospy.Subscriber('/uav1/mavros/global_position/global', NavSatFix, call_back_current_position) 
 	rospy.Subscriber('/uav1/mavros/local_position/odom', Odometry, get_rotation)
 	rospy.Subscriber('/uav1/mavros/battery', BatteryState, call_back_battery_state) 
+	rospy.Subscriber('/no_name', , call_back_battery_state) 
 
 
 	rospy.spin()
