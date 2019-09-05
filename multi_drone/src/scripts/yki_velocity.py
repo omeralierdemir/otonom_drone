@@ -30,7 +30,7 @@ baglanti_koptu_temp = 1
 
 
 baglanti_durumu_koptu = 0
-
+savas_basladi = 0
 
 current_state = State()
 msg = PositionTarget()
@@ -56,6 +56,7 @@ positionZ = 0
 
 lastErrorY = 0
 
+gps_yenilenme_zamani = 0
 baglanti_yenilenme_zamani = 0
 yki_savasa_basla_start_time = time.time()
 pid_wait = time.time() # eger 3 saniye boyunca pid aktif degilse velocity takibine gec
@@ -65,8 +66,28 @@ def state_cb(state):
     current_state = state
 
 
+def baglanti_durum_kontrol():
 
+	global baglanti_yenilenme_zamani, baglanti_durumu_koptu
 
+	current_time = time.time()
+	baglanti_durumu = 0
+
+	if current_time - baglanti_yenilenme_zamani <= 2.0 and baglanti_durumu_koptu == 1: # baglanti yeniden saglandi ise ve en az 2 sn bir
+																					   # veri aliyorsa tekrar savasa basla
+		print "kurtardin yine iyisin haaa"
+		yki_ilk_ucus = 0
+		yki_savasa_basla = 1
+		yki_eve_don = 0
+		baglanti_koptu_temp = 1
+		eve_don_temp = 0 # eve don cagrilabilmesi icin lazim
+		baglanti_durumu_koptu = 0
+		baglanti_durumu = 1
+
+	else:
+		baglanti_durumu = 0
+
+	return baglanti_durumu
 
 def get_rotation(msg):
     global positionX, positionY, positionZ
@@ -110,12 +131,17 @@ def get_home():
 			
 			flight_controller()
 			pub.publish(msg)
+			#print baglanti_durumu_koptu == 1
+			#baglanti_durumu = baglanti_durum_kontrol()
 			if round(current_lat,5) == round(home_lat,5) and round(current_long,5) == round(home_longi,5):
 				print "break"
 				break
-			if baglanti_durumu_koptu == 0: #baglanti tekrar saglandiysa inme
+			"""
+			if baglanti_durumu == 0: #baglanti tekrar saglandiysa inme
+				print "buradaki ife girdimmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
 				land_temp = 0
 				break
+			"""
 			rate.sleep()
 		
 		if land_temp == 1:
@@ -135,23 +161,23 @@ def call_back_current_position(data):
 	global yki_sola_git
 
 
-	
-	if ilk_ucus_temp == 1:
-		#buraya seriportan istenen veri geldiyse kosulu konacak
-		home_lat =  data.latitude
-		home_longi = data.longitude
-		home_alt = 10.0 #baslangic yuksekligi 10m set edildi
+	if yki_sola_git == 0:
+		if ilk_ucus_temp == 1:
+			#buraya seriportan istenen veri geldiyse kosulu konacak
+			home_lat =  data.latitude
+			home_longi = data.longitude
+			home_alt = 10.0 #baslangic yuksekligi 10m set edildi
+			
+			print ("home paremetreleri set edildi", home_lat,home_longi,home_alt)
+		  # buna gerek kalmayabilir
 		
-		print ("home paremetreleri set edildi", home_lat,home_longi,home_alt)
-	  # buna gerek kalmayabilir
-	
 
-	current_lat =  data.latitude
-	current_long = data.longitude
+		current_lat =  data.latitude
+		current_long = data.longitude
 
-	gps_yenilenme_zamani = time.time()
-		
-	#print current_lat,current_long
+		gps_yenilenme_zamani = time.time()
+			
+		#print current_lat,current_long
 
 
 
@@ -385,7 +411,7 @@ def calling_methods():
 	global baglanti_yenilenme_zamani, gps_yenilenme_zamani # baglanti_koptu_temp get_home()  metodunun birkere cagrilamsi icin
 	global eve_don_temp, ilk_ucus_temp, baglanti_koptu_temp
 	global yki_savasa_basla_start_time																# olusturuldu.
-	global baglanti_durumu_koptu 
+	global baglanti_durumu_koptu, savas_basladi 
 
 	current_time = time.time()
 	if yki_ilk_ucus == 1:
@@ -406,14 +432,15 @@ def calling_methods():
 			yki_savasa_basla_start_time = time.time()
 			flight_controller(5.0)
 			print "hayirrrr"
-			
+			savas_basladi = 1 # bak bu cok dogru olmayabilir sebebi oyun sirasinda gps koparsa in diyebilmek her zaman aktif
+								# bir kere savasa basla demek yeterli
 	if yki_eve_don == 1:
 		print "zamaninda cok konustum faydasini gormedim"
 		get_home()
 		yki_eve_don = 0
 
 
-	print "cuurent time : ",current_time, baglanti_yenilenme_zamani, "----", gps_yenilenme_zamani , " -oooooo- ", current_time- baglanti_yenilenme_zamani,baglanti_koptu_temp == 1 ,yki_savasa_basla == 1
+	#print "cuurent time : ",current_time, baglanti_yenilenme_zamani, "----", gps_yenilenme_zamani , " -oooooo- ", current_time- baglanti_yenilenme_zamani,baglanti_koptu_temp == 1 ,yki_savasa_basla == 1
 
 	if current_time - baglanti_yenilenme_zamani >= 10.0 and baglanti_koptu_temp == 1 and yki_savasa_basla == 1: # eger baglanti kopar ise 20 saniye sonra eve don bunu yer istasyonuna sucscreber
 															# oldugun her metotda kullanabilirsin
@@ -427,10 +454,10 @@ def calling_methods():
 		eve_don_temp = 1 # eve don cagrilabilmesi icin lazim
 		baglanti_durumu_koptu = 1
 
+	"""
+	print current_time - baglanti_yenilenme_zamani <= 2.0 , baglanti_durumu_koptu == 1
 
-
-
-	if current_time - baglanti_yenilenme_zamani <= 2.0 and baglanti_durumu_koptu == 1 and False: # baglanti yeniden saglandi ise ve en az 2 sn bir
+	if current_time - baglanti_yenilenme_zamani <= 2.0 and baglanti_durumu_koptu == 1: # baglanti yeniden saglandi ise ve en az 2 sn bir
 																					   # veri aliyorsa tekrar savasa basla
 		print "kurtardin yine iyisin haaa"
 		yki_ilk_ucus = 0
@@ -440,9 +467,15 @@ def calling_methods():
 		eve_don_temp = 0 # eve don cagrilabilmesi icin lazim
 		baglanti_durumu_koptu = 0
 
+	"""
 
+	if current_time - gps_yenilenme_zamani >= 10.0 and yki_savasa_basla == 1: # eger gps baglantisi kopar ise 10 saniye sonra inise gec
 
-
+		print "gps baglantisi koptuuuu"
+		setLandMode()
+		yki_ilk_ucus = 0
+		yki_savasa_basla = 0
+		yki_eve_don = 0
 
 if __name__ == '__main__':
 
