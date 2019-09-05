@@ -71,7 +71,7 @@ def create_waypoints():
 	
 	r1 = random.randint(-9,9)  # gecici cozum
 	r2 = random.randint(-9,9)
-	r3 = random.randint(1,20)
+	r3 = random.randint(1,15)
 	altitude = r3
 	current_alt = r3
 	start_time2 = time.time()

@@ -26,7 +26,7 @@ yki_eve_don = 0
 eve_don_temp = 0
 ilk_ucus_temp = 0
 baglanti_koptu_temp = 1
-
+condition_velocity = 1
 
 
 baglanti_durumu_koptu = 0
@@ -211,12 +211,12 @@ def call_back_pid(pid_data):
 
 
 	global msg
-	global pid_wait
+	global pid_wait, condition_velocity
 
-	if pid_data.data != "null" : # buraya birde ekranda ne kadar yer kapladigi kosunu koy
+	if pid_data.data != "null" and yki_savasa_basla == 1: # buraya birde ekranda ne kadar yer kapladigi kosunu koy
 
 		print "pid geciyom haci"
-		condition_waypoint = 0
+		condition_velocity = 0
 		
 		(axis_z, axis_r, axis_yaw) = pid_data.data.split(",") 
 		(axis_z, axis_r, axis_yaw) = (float(axis_z), float(axis_r), float(axis_yaw))
@@ -227,7 +227,7 @@ def call_back_pid(pid_data):
 		msg.yaw = axis_yaw
 		pid_wait = time.time()
 
-		pub.publish(msg)
+		#pub.publish(msg)
 		rate.sleep()#buna cok gerek olmayabilir. hesapla ne kadar geciktigini
 
 
@@ -239,8 +239,8 @@ def call_back_pid(pid_data):
 
 			
 	
-			condition_waypoint = 1
-			#print "way pointe geciyom haci"
+			condition_velocity = 1
+			print "velocity geciyom haci"
 
 
 
@@ -259,75 +259,127 @@ def flight_controller(follow_speed= 3.0):
 	global msg
 	global lastErrorY
 
+ 	"""
+	pub = rospy.Publisher('/uav1/mavros/setpoint_raw/local', PositionTarget,queue_size=10)
+	set_mode = rospy.ServiceProxy('/uav1/mavros/set_mode', mavros_msgs.srv.SetMode)
+	#set_mode(0,'MANUAL')
+	rate = rospy.Rate(20)
+	"""
+
+	# ------ yukselme kontrolcusu ---------
+	if condition_velocity == 1:
+
+		errorY = target_alt - positionZ
+
+		kp = 1.0/20.0#0.02 #1.0/100.0 -----> 1/ 80.0  max hiz 3~2 m/s
+		kd = 1.0/30.0#0.012#1.0/150.0 -----> 1.0/75.0
+		kd = 0
+		turevY = errorY-lastErrorY
+		yukselmeY =  errorY*kp + turevY*kd
+		#msg.velocity.z = yukselmeY
+		
+		lastErrorY = errorY
+
+		if yukselmeY >= 1.0:
+			yukselmeY =1.0
+
+		if yukselmeY <= -1.0:
+
+			yukselmeY = -1.0
+
+
+		print target_alt, positionZ, yukselmeY
+
+	    # ------------------------------------------
+
+
+
+		
+
+		y_eksen = target_lat - current_lat #burada direk r1* 0.00001 i esitlenebilir ama hatirlanman icin boyle yaptin 
+		x_eksen = (target_long - current_long) * 400/700 # ayni scalayacektik enlem ile boylami (yaklasik olarak)
+		
+		if y_eksen == 0:
+			y_eksen = 0.0000001
+		if x_eksen == 0:
+			x_eksen = 0.0000001
+
+
+		yaw_radyan = math.atan2(y_eksen,x_eksen)
+		yaw_radyan2 = math.atan(x_eksen/y_eksen)
+		target_yaw =  (yaw_radyan / math.pi) * 180
+		
+		print("lat: " ,y_eksen," long : ",x_eksen)
+		print("lat: " ,target_lat," long : ",target_long, " altitude: ",target_alt)
+		print("tanjant: ", yaw_radyan,yaw_radyan2)
+		print("lat, long create daki" ,target_lat, target_long, target_yaw )
+		
+
+		msg.header.stamp = rospy.Time.now()
+		msg.header.frame_id = "world"
+		msg.coordinate_frame = PositionTarget.FRAME_BODY_NED
+		msg.type_mask = PositionTarget.IGNORE_PX | PositionTarget.IGNORE_PY | PositionTarget.IGNORE_PZ | PositionTarget.IGNORE_AFX | PositionTarget.IGNORE_AFY | PositionTarget.IGNORE_AFZ | PositionTarget.IGNORE_YAW_RATE
+
+		msg.velocity.x = 0.0
+		msg.velocity.y = follow_speed#follow_speed # suankil 4m/s sonradan arguman olarak yer istasyonundan alinacak (float)
+		msg.velocity.z = yukselmeY # suanlik 0 sonradan konrolcu eklenecek
+		msg.yaw = yaw_radyan
+		pid_wait = time.time()
+		rate.sleep()
+
+		#_________________________________________________
+
+
+
+
+def call_back_pid(pid_data):
+	global axis_z, axis_r, axis_yaw, msg
+	global pid_wait, condition_waypoint
+	global yki_savasa_basla, msg
 
 	pub = rospy.Publisher('/uav1/mavros/setpoint_raw/local', PositionTarget,queue_size=10)
 	set_mode = rospy.ServiceProxy('/uav1/mavros/set_mode', mavros_msgs.srv.SetMode)
 	#set_mode(0,'MANUAL')
 	rate = rospy.Rate(20)
-
-
-	# ------ yukselme kontrolcusu ---------
-
-	errorY = target_alt - positionZ
-
-	kp = 1.0/10.0#0.02 #1.0/100.0 -----> 1/ 80.0  max hiz 3~2 m/s
-	kd = 1.0/20.0#0.012#1.0/150.0 -----> 1.0/75.0
-	kd = 0
-	turevY = errorY-lastErrorY
-	yukselmeY =  errorY*kp + turevY*kd
-	#msg.velocity.z = yukselmeY
-	
-	lastErrorY = errorY
-
-	if yukselmeY >= 1.0:
-		yukselmeY =1.0
-
-	if yukselmeY <= -1.0:
-
-		yukselmeY = -1.0
-
-
-	print target_alt, positionZ, yukselmeY
-
-    # ------------------------------------------
-
-
-
-	
-
-	y_eksen = target_lat - current_lat #burada direk r1* 0.00001 i esitlenebilir ama hatirlanman icin boyle yaptin 
-	x_eksen = (target_long - current_long) * 400/700 # ayni scalayacektik enlem ile boylami (yaklasik olarak)
-	
-	if y_eksen == 0:
-		y_eksen = 0.0000001
-	if x_eksen == 0:
-		x_eksen = 0.0000001
-
-
-	yaw_radyan = math.atan2(y_eksen,x_eksen)
-	yaw_radyan2 = math.atan(x_eksen/y_eksen)
-	target_yaw =  (yaw_radyan / math.pi) * 180
-	
-	print("lat: " ,y_eksen," long : ",x_eksen)
-	print("lat: " ,target_lat," long : ",target_long, " altitude: ",target_alt)
-	print("tanjant: ", yaw_radyan,yaw_radyan2)
-	print("lat, long create daki" ,target_lat, target_long, target_yaw )
-	
-
+	"""
 	msg.header.stamp = rospy.Time.now()
 	msg.header.frame_id = "world"
 	msg.coordinate_frame = PositionTarget.FRAME_BODY_NED
 	msg.type_mask = PositionTarget.IGNORE_PX | PositionTarget.IGNORE_PY | PositionTarget.IGNORE_PZ | PositionTarget.IGNORE_AFX | PositionTarget.IGNORE_AFY | PositionTarget.IGNORE_AFZ | PositionTarget.IGNORE_YAW_RATE
+	"""
+	
+	if pid_data.data != "null" and yki_savasa_basla == 1: # buraya birde ekranda ne kadar yer kapladigi kosunu koy
 
-	msg.velocity.x = 0.0
-	msg.velocity.y = follow_speed#follow_speed # suankil 4m/s sonradan arguman olarak yer istasyonundan alinacak (float)
-	msg.velocity.z = yukselmeY # suanlik 0 sonradan konrolcu eklenecek
-	msg.yaw = yaw_radyan
-	pid_wait = time.time()
-	rate.sleep()
+		print "pid geciyom haci"
+		condition_waypoint = 0
+		
+		(axis_z, axis_r, axis_yaw) = pid_data.data.split(",") 
+		(axis_z, axis_r, axis_yaw) = (float(axis_z), float(axis_r), float(axis_yaw))
+		print(axis_z, axis_r, axis_yaw)
+		msg.velocity.x = 0.0
+		msg.velocity.y = axis_r
+		msg.velocity.z = axis_z
+		msg.yaw = axis_yaw
+		pid_wait = time.time()
 
-	#_________________________________________________
+		#pub.publish(msg)
+		rate.sleep()#buna cok gerek olmayabilir. hesapla ne kadar geciktigini
 
+
+	else:
+		current_time4 = time.time()
+		
+		if current_time4 - pid_wait >= 0 and yki_savasa_basla == 1: # eger 3 sn boyunca hedef iha yok ise ekranda waypoint ile arama yap bu zamanlada sikinti olabilir
+
+			
+	
+			condition_velocity = 1
+			#print "way pointe geciyom haci"
+
+
+
+
+	
 
 
 def set_single_position(desired_x=0, desired_y=0, desired_z=10):
@@ -431,7 +483,6 @@ def calling_methods():
 
 			yki_savasa_basla_start_time = time.time()
 			flight_controller(5.0)
-			print "hayirrrr"
 			savas_basladi = 1 # bak bu cok dogru olmayabilir sebebi oyun sirasinda gps koparsa in diyebilmek her zaman aktif
 								# bir kere savasa basla demek yeterli
 	if yki_eve_don == 1:
@@ -491,7 +542,7 @@ if __name__ == '__main__':
 	rospy.Subscriber('waypoint_random', String, call_back_coordinates)
 	rospy.Subscriber('yer_istasyonu', String, call_back_yki)
 	rospy.Subscriber('/uav1/mavros/global_position/global', NavSatFix, call_back_current_position)  
-	#rospy.Subscriber('get_pid', String, call_back_pid)
+	rospy.Subscriber('get_pid', String, call_back_pid)
 	rospy.Subscriber('/uav1/mavros/local_position/odom', Odometry, get_rotation)
 
 
