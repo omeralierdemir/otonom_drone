@@ -13,17 +13,57 @@ from mavros_msgs.msg import *
 from mavros_msgs.srv import *
 from nav_msgs.msg import Odometry
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
-
+import datetime
 #data = NavSatFix()
 
 current_alt = 0
 current_lat = 0
 current_long = 0
+
 voltage_rate = 0
+
 roll_degrees = 0
 pitch_degress = 0
 yaw_degrees = 0
-x = 0
+
+sistem_h = 0
+sistem_m = 0
+sistem_s = 0
+sistem_ns = 0
+
+kilitlenme_h = 0
+kilitlenme_m = 0
+kilitlenme_s = 0
+kilitlenme_ns = 0
+
+kilitlenme_zamani_temp = 1
+
+x_speed = 0
+
+def call_back_yolo(data):
+
+	global sistem_h, sistem_m, sistem_s,sistem_ns
+	global kilitlenme_h, kilitlenme_m, kilitlenme_s,kilitlenme_ns
+
+	(x_axis, y_axis, weight, height, kilitlenme_durumu) = data.data.split()# null durumlarda var # kilitlenme durumu 0 olunca
+																					# kilitlenme bitisi 1 olunca kilitlenme baslangici gonder
+
+
+	if kilitlenme_durumu == 1 and kilitlenme_zamani_temp == 1:
+
+		(kilitlenme_h, kilitlenme_m, kilitlenme_s,kilitlenme_ns) = (sistem_h, sistem_m, sistem_s,sistem_ns) 
+		kilitlenme_zamani_temp = 0
+
+
+	if kilitlenme_durumu == 0 and kilitlenme_zamani_temp == 0:
+
+		(kilitlenme_h, kilitlenme_m, kilitlenme_s,kilitlenme_ns) = (sistem_h, sistem_m, sistem_s,sistem_ns) 
+		kilitlenme_zamani_temp = 1
+
+	# bu kod calisir diye dusunuyorum # kilitlenme zamaninin 3 sn lik toleransı yoloda verilecek kontrol et tekrar
+
+
+
 
 def call_back_current_position(data):
 
@@ -38,24 +78,37 @@ def call_back_current_position(data):
 	
 
 def call_back_gps_time(data):
+
+	global sistem_h, sistem_m, sistem_s,sistem_ns
 	
-	data.header.stamp.secs
+	a = data.header.stamp.secs
+	zaman = str(datetime.datetime.now().time())
+
+	(sistem_h, sistem_m, sistem_s) = zaman.split(':')
+
+	(sistem_s,sistem_ns) = sistem_s.split('.')
+
+	(sistem_h, sistem_m, sistem_s, sistem_ns) = (float(sistem_h), float(sistem_m), float(sistem_s), float(sistem_ns))  # float(sistem_ns) bunun int olması lazım olabilir
+
+	print (sistem_h, sistem_m, sistem_s, sistem_ns)
+
+
 
 
 def call_back_battery_state(data):
 
 	global voltage_rate
 	voltage_rate = data.voltage * 100 / 16
-	print voltage_rate
+	#	print voltage_rate
 
 
 def get_rotation(msg):
-    global yaw_degrees, roll_degrees, pitch_degress,x
+    global yaw_degrees, roll_degrees, pitch_degress,x_speed
     #    print msg.pose.pose.orientation
     orientation_q = msg.pose.pose.orientation
     orientation_twist = msg.twist.twist.linear
     orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
-    (x,y,z) = [orientation_twist.x, orientation_twist.y, orientation_twist.z]
+    (x_speed,y_speed,z_speed) = [orientation_twist.x, orientation_twist.y, orientation_twist.z]
     (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
     yaw_degrees = yaw * 180.0 / math.pi
     roll_degrees = roll * 180.0 / math.pi
@@ -69,7 +122,7 @@ def get_rotation(msg):
     if (pitch_degress < 0):
         pitch_degress += 360.0
     
-    print (roll_degrees, pitch_degress, yaw_degrees,x) 
+    #print (roll_degrees, pitch_degress, yaw_degrees,x) 
     # print "yaw_degrees HAS " , yaw_degrees
 
 if __name__ == '__main__':
@@ -84,7 +137,7 @@ if __name__ == '__main__':
 	rospy.Subscriber('/uav1/mavros/global_position/global', NavSatFix, call_back_current_position) 
 	rospy.Subscriber('/uav1/mavros/local_position/odom', Odometry, get_rotation)
 	rospy.Subscriber('/uav1/mavros/battery', BatteryState, call_back_battery_state) 
-	rospy.Subscriber('/no_name', , call_back_battery_state) 
+	rospy.Subscriber('/no_name', String, call_back_yolo) 
 
 
 	rospy.spin()
