@@ -530,6 +530,8 @@ def calling_methods():
 
 if __name__ == '__main__':
 
+	print "Rahman ve Rahim olan ALLAH'IN adiyla"
+	print "Onlar, ustlerinde dizi dizi kanat acip kapayarak ucan kuslari gormuyorlar mi? Onlari Rahman (olan ALLAH')tan baskasi (boslukta) tutmuyor. Suphesiz O, herseyi hakkiyla gorendir."
 	rospy.init_node('gps_velocity', anonymous=True)
 	mavros.set_namespace('mavros')
 	rate = rospy.Rate(20)
