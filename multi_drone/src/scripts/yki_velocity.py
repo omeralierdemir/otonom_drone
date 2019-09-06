@@ -65,7 +65,7 @@ def state_cb(state):
     global current_state
     current_state = state
 
-
+"""
 def baglanti_durum_kontrol():
 
 	global baglanti_yenilenme_zamani, baglanti_durumu_koptu
@@ -88,7 +88,7 @@ def baglanti_durum_kontrol():
 		baglanti_durumu = 0
 
 	return baglanti_durumu
-
+"""
 def get_rotation(msg):
     global positionX, positionY, positionZ
     #    print msg.pose.pose.orientation
@@ -161,23 +161,22 @@ def call_back_current_position(data):
 	global yki_sola_git
 
 
-	if yki_sola_git == 0:
-		if ilk_ucus_temp == 1:
-			#buraya seriportan istenen veri geldiyse kosulu konacak
-			home_lat =  data.latitude
-			home_longi = data.longitude
-			home_alt = 10.0 #baslangic yuksekligi 10m set edildi
-			
-			print ("home paremetreleri set edildi", home_lat,home_longi,home_alt)
-		  # buna gerek kalmayabilir
+	if ilk_ucus_temp == 1:
+		#buraya seriportan istenen veri geldiyse kosulu konacak
+		home_lat =  data.latitude
+		home_longi = data.longitude
+		home_alt = 10.0 #baslangic yuksekligi 10m set edildi
 		
+		print ("home paremetreleri set edildi", home_lat,home_longi,home_alt)
+	  # buna gerek kalmayabilir
+	
 
-		current_lat =  data.latitude
-		current_long = data.longitude
+	current_lat =  data.latitude
+	current_long = data.longitude
 
-		gps_yenilenme_zamani = time.time()
-			
-		#print current_lat,current_long
+	gps_yenilenme_zamani = time.time()
+		
+	#print current_lat,current_long
 
 
 
@@ -197,51 +196,13 @@ def call_back_coordinates(data):
 	 	(target_lat, target_long, target_alt) = (float(t_lat), float(t_longi), float(t_alt))
 
 	
-	baglanti_yenilenme_zamani = time.time() # yki baglanti kontrolu icin olusturulmus zaman degiskeni
+	baglanti_yenilenme_zamani = time.time() # yki baglanti kontrolu icin olusturulmus zaman degiskeni bunu her yer istasyonu komtu gelince guncelle
 
  	
  	
-	#print(target_lat, target_long, target_alt) 	
+	print "muhtarrr", (target_lat, target_long, target_alt) 	
 
 	
-
-
-
-def call_back_pid(pid_data):
-
-
-	global msg
-	global pid_wait, condition_velocity
-
-	if pid_data.data != "null" and yki_savasa_basla == 1: # buraya birde ekranda ne kadar yer kapladigi kosunu koy
-
-		print "pid geciyom haci"
-		condition_velocity = 0
-		
-		(axis_z, axis_r, axis_yaw) = pid_data.data.split(",") 
-		(axis_z, axis_r, axis_yaw) = (float(axis_z), float(axis_r), float(axis_yaw))
-		print(axis_z, axis_r, axis_yaw)
-		msg.velocity.x = 0.0
-		msg.velocity.y = axis_r
-		msg.velocity.z = axis_z
-		msg.yaw = axis_yaw
-		pid_wait = time.time()
-
-		#pub.publish(msg)
-		rate.sleep()#buna cok gerek olmayabilir. hesapla ne kadar geciktigini
-
-
-	
-	else:
-		current_time_pid_disable = time.time()
-		
-		if current_time_pid_disable - pid_wait >= 3: # eger 3 sn boyunca hedef iha yok ise ekranda waypoint ile arama yap bu zamanlada sikinti olabilir
-
-			
-	
-			condition_velocity = 1
-			print "velocity geciyom haci"
-
 
 
 
@@ -409,7 +370,7 @@ def call_back_yki(data):
 	global yki_ilk_ucus, yki_savasa_basla, yki_hedef_takip
 	global yki_saga_git, yki_sola_git, yki_ileri_git, yki_geri_git, yki_eve_don
 	global eve_don_temp, ilk_ucus_temp
-	
+	global baglanti_yenilenme_zamani
 	print data.data.split(",")
 
 	
@@ -439,18 +400,21 @@ def call_back_yki(data):
 		yki_eve_don = 1
 
 		eve_don_temp = 1
+		baglanti_yenilenme_zamani = time.time()
 
 	if yki_savasa_basla == 1:
 
 		print "yki_savasa_basla"
 		yki_ilk_ucus = 0
+		baglanti_yenilenme_zamani = time.time()
 
 	if yki_ilk_ucus == 1:
 
 		print "yki_ilk_ucus"
 		ilk_ucus_temp = 1 # ilerisi icin tehlikeli bir kod mutlaka tarik hocaya danis. Bu islem ilk komutta drone kalkmazsa diye konuldu ykiden
 		             #gonderilen paketleri buna gore ayarla
-		
+		baglanti_yenilenme_zamani = time.time()
+
 	print (yki_ilk_ucus, yki_savasa_basla, yki_hedef_takip, yki_saga_git, yki_sola_git, yki_ileri_git, yki_geri_git, yki_eve_don)
 
 
@@ -482,7 +446,7 @@ def calling_methods():
 		if current_time - yki_savasa_basla_start_time >=0.2:
 
 			yki_savasa_basla_start_time = time.time()
-			flight_controller(5.0)
+			flight_controller(2.0)
 			savas_basladi = 1 # bak bu cok dogru olmayabilir sebebi oyun sirasinda gps koparsa in diyebilmek her zaman aktif
 								# bir kere savasa basla demek yeterli
 	if yki_eve_don == 1:
@@ -493,7 +457,7 @@ def calling_methods():
 
 	#print "cuurent time : ",current_time, baglanti_yenilenme_zamani, "----", gps_yenilenme_zamani , " -oooooo- ", current_time- baglanti_yenilenme_zamani,baglanti_koptu_temp == 1 ,yki_savasa_basla == 1
 
-	if current_time - baglanti_yenilenme_zamani >= 10.0 and baglanti_koptu_temp == 1 and yki_savasa_basla == 1: # eger baglanti kopar ise 20 saniye sonra eve don bunu yer istasyonuna sucscreber
+	if current_time - baglanti_yenilenme_zamani >= 20.0 and baglanti_koptu_temp == 1 and yki_savasa_basla == 1: # eger baglanti kopar ise 20 saniye sonra eve don bunu yer istasyonuna sucscreber
 															# oldugun her metotda kullanabilirsin
 		print "ifdeyim baglanti koptu"															
 		#get_home()
@@ -540,8 +504,8 @@ if __name__ == '__main__':
 	set_mode = rospy.ServiceProxy('/uav1/mavros/set_mode', mavros_msgs.srv.SetMode)
 	state_sub = rospy.Subscriber('/uav1/mavros/state', State, state_cb)
 	
-	#rospy.Subscriber('test_waypoint', String, call_back_coordinates)
-	rospy.Subscriber('waypoint_random', String, call_back_coordinates)
+	rospy.Subscriber('spesific_waypoint', String, call_back_coordinates)
+	#rospy.Subscriber('waypoint_random', String, call_back_coordinates)
 	rospy.Subscriber('yer_istasyonu', String, call_back_yki)
 	rospy.Subscriber('/uav1/mavros/global_position/global', NavSatFix, call_back_current_position)  
 	rospy.Subscriber('get_pid', String, call_back_pid)
