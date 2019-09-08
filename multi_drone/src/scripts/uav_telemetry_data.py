@@ -67,6 +67,7 @@ def call_back_ucus_durumu(data):
 	global uav_state
 
 	uav_state = data.data
+	print uav_state
 
 
 def call_back_yolo(data):# sucscreber olmadin
@@ -148,7 +149,7 @@ def call_back_battery_state(data):
 	voltage_rate = data.voltage * 100 / 16
 	
 	voltage_rate = int(round(voltage_rate))
-	print voltage_rate
+	#print voltage_rate
 
 def get_rotation(msg):
     global yaw_degrees, roll_degrees, pitch_degrees,x_speed, z_axis
@@ -196,7 +197,7 @@ if __name__ == '__main__':
 	rospy.Subscriber('/uav1/mavros/local_position/odom', Odometry, get_rotation)
 	rospy.Subscriber('/uav1/mavros/battery', BatteryState, call_back_battery_state) 
 	rospy.Subscriber('/no_name', String, call_back_yolo) 
-	rospy.Subscriber('/iha_ucus_durumu', String, call_back_ucus_durumu)
+	rospy.Subscriber('/iha_ucus_modu', String, call_back_ucus_durumu)
 
 
 	iha_telemetry_file = open("/home/efl4tun/Desktop/iha_telemetry.txt",'w') # nvidia kullanicisi olarak degistirmek zorundasin
@@ -232,7 +233,7 @@ if __name__ == '__main__':
 			request_file = open("/home/efl4tun/Desktop/request.txt",'r')
 			request = request_file.readline()
 			
-			print request
+			#print request
 			if int(request) == 1:
 
 				
@@ -251,7 +252,7 @@ if __name__ == '__main__':
 
 			if kilitlenme_paketini_yaz == 1:
 				
-				print "icerdeim"
+				#print "icerdeim"
 
 				kilitlenme_file = open("/home/efl4tun/Desktop/kilitlenme.txt",'w')
 

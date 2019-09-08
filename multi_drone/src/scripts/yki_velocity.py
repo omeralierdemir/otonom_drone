@@ -12,13 +12,15 @@ from mavros_msgs.msg import *
 from mavros_msgs.srv import *
 
 
+iha_ucus_mod = 0
+
 yki_ilk_ucus = 0
 yki_savasa_basla = 0
 yki_hedef_takip = 0
 yki_saga_git = 0
 yki_sola_git = 0
 yki_ileri_git = 0
-yki_geri_git = 0
+yki_pid_disable = 0
 yki_eve_don = 0
 
 
@@ -109,6 +111,19 @@ def setLandMode(altitude = 0, latitude = home_lat, longitude = home_longi, min_p
        print "service land call failed: %s. The vehicle cannot land "%e
 
 
+def check_collisyon():
+
+
+	global current_alt, current_lat, current_long
+	global target_lat, target_long, target_alt
+
+	collisyon = 0
+
+	if round(current_lat,5) == round(target_lat,5) and round(current_long,5) == round(target_long,5) and round(current_alt) == round(target_alt):
+
+		collisyon = 1
+
+	return collisyon
 
 
 def get_home():
@@ -191,16 +206,19 @@ def call_back_coordinates(data):
 
 	if eve_don_temp == 0: # eve_don komutu aktif olunca hedefin konumunu artik almayacak konum olarak home_telemeteleri set edilecek
 
-	 	(t_lat, t_longi, t_alt) = data.data.split(",")# null gelme durumunu dusun
-	 	
-	 	(target_lat, target_long, target_alt) = (float(t_lat), float(t_longi), float(t_alt))
+
+		
+		if data.data[0] != "null" :
+			
+		 	(t_lat, t_longi, t_alt) = data.data.split(",")# null gelme durumunu dusun
+		 	
+		 	(target_lat, target_long, target_alt) = (float(t_lat), float(t_longi), float(t_alt))
 
 	
 	baglanti_yenilenme_zamani = time.time() # yki baglanti kontrolu icin olusturulmus zaman degiskeni bunu her yer istasyonu komtu gelince guncelle
 
  	
  	
-	print "muhtarrr", (target_lat, target_long, target_alt) 	
 
 	
 
@@ -219,6 +237,7 @@ def flight_controller(follow_speed= 3.0):
 	global positionZ 
 	global msg
 	global lastErrorY
+	global iha_ucus_mod
 
  	"""
 	pub = rospy.Publisher('/uav1/mavros/setpoint_raw/local', PositionTarget,queue_size=10)
@@ -229,6 +248,8 @@ def flight_controller(follow_speed= 3.0):
 
 	# ------ yukselme kontrolcusu ---------
 	if condition_velocity == 1:
+
+		iha_ucus_mod = 2
 
 		errorY = target_alt - positionZ
 
@@ -258,7 +279,7 @@ def flight_controller(follow_speed= 3.0):
 		
 
 		y_eksen = target_lat - current_lat #burada direk r1* 0.00001 i esitlenebilir ama hatirlanman icin boyle yaptin 
-		x_eksen = (target_long - current_long) * 400/700 # ayni scalayacektik enlem ile boylami (yaklasik olarak)
+		x_eksen = (target_long - current_long) *   0.7627 #yeni deger #400/700 # ayni scalayacektik enlem ile boylami (yaklasik olarak)
 		
 		if y_eksen == 0:
 			y_eksen = 0.0000001
@@ -297,6 +318,7 @@ def call_back_pid(pid_data):
 	global axis_z, axis_r, axis_yaw, msg
 	global pid_wait, condition_waypoint
 	global yki_savasa_basla, msg
+	global iha_ucus_mod
 
 	pub = rospy.Publisher('/uav1/mavros/setpoint_raw/local', PositionTarget,queue_size=10)
 	set_mode = rospy.ServiceProxy('/uav1/mavros/set_mode', mavros_msgs.srv.SetMode)
@@ -309,8 +331,9 @@ def call_back_pid(pid_data):
 	msg.type_mask = PositionTarget.IGNORE_PX | PositionTarget.IGNORE_PY | PositionTarget.IGNORE_PZ | PositionTarget.IGNORE_AFX | PositionTarget.IGNORE_AFY | PositionTarget.IGNORE_AFZ | PositionTarget.IGNORE_YAW_RATE
 	"""
 	
-	if pid_data.data != "null" and yki_savasa_basla == 1: # buraya birde ekranda ne kadar yer kapladigi kosunu koy
+	if pid_data.data != "null" and yki_savasa_basla == 1 and yki_pid_disable == 0: # yki_pid_disable == 0 ise pid aktifdir yer istasyonundan kontrol edilecek
 
+		iha_ucus_mod = 3
 		print "pid geciyom haci"
 		condition_waypoint = 0
 		
@@ -368,54 +391,53 @@ def set_single_position(desired_x=0, desired_y=0, desired_z=10):
 def call_back_yki(data):
 	
 	global yki_ilk_ucus, yki_savasa_basla, yki_hedef_takip
-	global yki_saga_git, yki_sola_git, yki_ileri_git, yki_geri_git, yki_eve_don
+	global yki_saga_git, yki_sola_git, yki_ileri_git, yki_pid_disable, yki_eve_don
 	global eve_don_temp, ilk_ucus_temp
 	global baglanti_yenilenme_zamani
 	print data.data.split(",")
 
-	
-	(ilk_ucus, savasa_basla, hedef_takip, saga_git, sola_git, ileri_git, geri_git, eve_don) = data.data.split(',')
+	if data.data[0] != "null":
+		(ilk_ucus, savasa_basla, hedef_takip, saga_git, sola_git, ileri_git, pid_disable, eve_don) = data.data.split(',')
 
-	yki_ilk_ucus = int(ilk_ucus)
-	yki_savasa_basla = int(savasa_basla)
-	yki_hedef_takip = int(hedef_takip)
-	yki_saga_git = int(saga_git)
-	yki_sola_git = int(sola_git)
-	yki_ileri_git = int(ileri_git)
-	yki_geri_git = int(geri_git)
-	yki_eve_don = int(eve_don)
-	# bak burada neleri set ettigine cok dikkat et yoksa sacma harektler yapar iha
+		yki_ilk_ucus = int(ilk_ucus)
+		yki_savasa_basla = int(savasa_basla)
+		yki_hedef_takip = int(hedef_takip)
+		yki_saga_git = int(saga_git)
+		yki_sola_git = int(sola_git)
+		yki_ileri_git = int(ileri_git)
+		yki_pid_disable = int(pid_disable)
+		yki_eve_don = int(eve_don)
+		# bak burada neleri set ettigine cok dikkat et yoksa sacma harektler yapar iha
 
-	if yki_eve_don == 1:
+		if yki_eve_don == 1:
 
-		print "yki_eve_don"
-		
-		yki_ilk_ucus = 0
-		yki_savasa_basla = 0
-		yki_hedef_takip = 0
-		yki_saga_git = 0
-		yki_sola_git = 0
-		yki_ileri_git = 0
-		yki_geri_git = 0
-		yki_eve_don = 1
+			print "yki_eve_don"
+			
+			yki_ilk_ucus = 0
+			yki_savasa_basla = 0
+			yki_hedef_takip = 0
+			yki_saga_git = 0
+			yki_sola_git = 0
+			yki_ileri_git = 0
+			yki_eve_don = 1
 
-		eve_don_temp = 1
-		baglanti_yenilenme_zamani = time.time()
+			eve_don_temp = 1
+			baglanti_yenilenme_zamani = time.time()
 
-	if yki_savasa_basla == 1:
+		if yki_savasa_basla == 1:
 
-		print "yki_savasa_basla"
-		yki_ilk_ucus = 0
-		baglanti_yenilenme_zamani = time.time()
+			print "yki_savasa_basla"
+			yki_ilk_ucus = 0
+			baglanti_yenilenme_zamani = time.time()
 
-	if yki_ilk_ucus == 1:
+		if yki_ilk_ucus == 1:
 
-		print "yki_ilk_ucus"
-		ilk_ucus_temp = 1 # ilerisi icin tehlikeli bir kod mutlaka tarik hocaya danis. Bu islem ilk komutta drone kalkmazsa diye konuldu ykiden
-		             #gonderilen paketleri buna gore ayarla
-		baglanti_yenilenme_zamani = time.time()
+			print "yki_ilk_ucus"
+			ilk_ucus_temp = 1 # ilerisi icin tehlikeli bir kod mutlaka tarik hocaya danis. Bu islem ilk komutta drone kalkmazsa diye konuldu ykiden
+			             #gonderilen paketleri buna gore ayarla
+			baglanti_yenilenme_zamani = time.time()
 
-	print (yki_ilk_ucus, yki_savasa_basla, yki_hedef_takip, yki_saga_git, yki_sola_git, yki_ileri_git, yki_geri_git, yki_eve_don)
+		print (yki_ilk_ucus, yki_savasa_basla, yki_hedef_takip, yki_saga_git, yki_sola_git, yki_ileri_git, yki_pid_disable, yki_eve_don)
 
 
 
@@ -428,31 +450,33 @@ def calling_methods():
 	global eve_don_temp, ilk_ucus_temp, baglanti_koptu_temp
 	global yki_savasa_basla_start_time																# olusturuldu.
 	global baglanti_durumu_koptu, savas_basladi 
+	global iha_ucus_mod
 
 	current_time = time.time()
 	if yki_ilk_ucus == 1:
 	# baslangic_ucusu gerceklesir ise true olacak. Bu baslangic ucusunun gerceklesmesi icin get_takeoff calismali 
 		
 		#ilk_ucus_temp = 1
-		a = 1
+		
 		   # onun calismasi icin yki_ilk_ucus_onay true yani onay verilmesi lazim
-
+		iha_ucus_mod = 1
 
 
 	if yki_savasa_basla == 1: # eger baslangic ucusu yapildi ise ve yki den veri geldiyse hedef konumlari olustur.
 		
 		
-	
+		iha_ucus_mod = 2
 		if current_time - yki_savasa_basla_start_time >=0.2:
 
 			yki_savasa_basla_start_time = time.time()
-			flight_controller(2.0)
+			flight_controller(5.0)
 			savas_basladi = 1 # bak bu cok dogru olmayabilir sebebi oyun sirasinda gps koparsa in diyebilmek her zaman aktif
 								# bir kere savasa basla demek yeterli
 	if yki_eve_don == 1:
 		print "zamaninda cok konustum faydasini gormedim"
 		get_home()
 		yki_eve_don = 0
+		iha_ucus_mod = 4
 
 
 	#print "cuurent time : ",current_time, baglanti_yenilenme_zamani, "----", gps_yenilenme_zamani , " -oooooo- ", current_time- baglanti_yenilenme_zamani,baglanti_koptu_temp == 1 ,yki_savasa_basla == 1
@@ -468,6 +492,7 @@ def calling_methods():
 		baglanti_koptu_temp = 0
 		eve_don_temp = 1 # eve don cagrilabilmesi icin lazim
 		baglanti_durumu_koptu = 1
+		iha_ucus_mod = 6
 
 	"""
 	print current_time - baglanti_yenilenme_zamani <= 2.0 , baglanti_durumu_koptu == 1
@@ -491,6 +516,7 @@ def calling_methods():
 		yki_ilk_ucus = 0
 		yki_savasa_basla = 0
 		yki_eve_don = 0
+		iha_ucus_mod = 5
 
 if __name__ == '__main__':
 
@@ -504,12 +530,13 @@ if __name__ == '__main__':
 	set_mode = rospy.ServiceProxy('/uav1/mavros/set_mode', mavros_msgs.srv.SetMode)
 	state_sub = rospy.Subscriber('/uav1/mavros/state', State, state_cb)
 	
-	rospy.Subscriber('spesific_waypoint', String, call_back_coordinates)
-	#rospy.Subscriber('waypoint_random', String, call_back_coordinates)
+	#rospy.Subscriber('spesific_waypoint', String, call_back_coordinates)
+	rospy.Subscriber('waypoint_random', String, call_back_coordinates)
 	rospy.Subscriber('yer_istasyonu', String, call_back_yki)
 	rospy.Subscriber('/uav1/mavros/global_position/global', NavSatFix, call_back_current_position)  
 	rospy.Subscriber('get_pid', String, call_back_pid)
 	rospy.Subscriber('/uav1/mavros/local_position/odom', Odometry, get_rotation)
+	pub3 = rospy.Publisher('iha_ucus_modu', String, queue_size=10)
 
 
 
@@ -574,6 +601,7 @@ if __name__ == '__main__':
 				#print "girdim"
 				start_time3 = time.time()
 				calling_methods()
+				pub3.publish(str(iha_ucus_mod))
 				pub.publish(msg)		
 			
 				
