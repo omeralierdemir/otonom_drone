@@ -28,15 +28,16 @@ def call_back(data):
     global lastErrorR
     global pid_value
 
-    XY = data.data
-    if XY != "null":
+    XY = data.data.split(" ")
+    print data.data , XY[0]
+    if XY[0] != "null":
 
-        XY = XY.split(" ")
+        XY = data.data.split(" ")
 
         x = float(XY[0])
         y = float(XY[1])
         r = float(XY[2])
-        if r >= 10:
+        if r >= 5:
             # -----------------------
             errorY = 300 - y
 

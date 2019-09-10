@@ -11,7 +11,7 @@ from nav_msgs.msg import Odometry
 from mavros_msgs.msg import *
 from mavros_msgs.srv import *
 
-
+ucus_hizi = 5.0
 iha_ucus_mod = 0
 
 yki_ilk_ucus = 0
@@ -194,6 +194,15 @@ def call_back_current_position(data):
 	#print current_lat,current_long
 
 
+def call_change_speed(data):
+
+	global ucus_hizi, baglanti_yenilenme_zamani
+
+	ucus_hizi = float(data.data)
+	
+	baglanti_yenilenme_zamani = time.time()
+
+
 
 def call_back_coordinates(data):
 
@@ -220,7 +229,7 @@ def call_back_coordinates(data):
  	
  	
 
-	
+	#print (target_lat, target_long, target_alt)
 
 
 
@@ -306,7 +315,7 @@ def flight_controller(follow_speed= 3.0):
 		msg.velocity.y = follow_speed#follow_speed # suankil 4m/s sonradan arguman olarak yer istasyonundan alinacak (float)
 		msg.velocity.z = yukselmeY # suanlik 0 sonradan konrolcu eklenecek
 		msg.yaw = yaw_radyan
-		pid_wait = time.time()
+		#pid_wait = time.time()
 		rate.sleep()
 
 		#_________________________________________________
@@ -345,18 +354,17 @@ def call_back_pid(pid_data):
 		msg.velocity.z = axis_z
 		msg.yaw = axis_yaw
 		pid_wait = time.time()
-
-		#pub.publish(msg)
-		rate.sleep()#buna cok gerek olmayabilir. hesapla ne kadar geciktigini
+		condition_velocity = 0		#pub.publish(msg)
+		rate.sleep()                #buna cok gerek olmayabilir. hesapla ne kadar geciktigini
 
 
 	else:
 		current_time4 = time.time()
 		
-		if current_time4 - pid_wait >= 0 and yki_savasa_basla == 1: # eger 3 sn boyunca hedef iha yok ise ekranda waypoint ile arama yap bu zamanlada sikinti olabilir
+		if current_time4 - pid_wait >= 3 and yki_savasa_basla == 1: # eger 3 sn boyunca hedef iha yok ise ekranda waypoint ile arama yap bu zamanlada sikinti olabilir
 
 			
-	
+			print "bekl,torum"
 			condition_velocity = 1
 			#print "way pointe geciyom haci"
 
@@ -394,9 +402,11 @@ def call_back_yki(data):
 	global yki_saga_git, yki_sola_git, yki_ileri_git, yki_pid_disable, yki_eve_don
 	global eve_don_temp, ilk_ucus_temp
 	global baglanti_yenilenme_zamani
-	print data.data.split(",")
+	
+	mod_data =  data.data.split(",")
+	
 
-	if data.data[0] != "null":
+	if mod_data[0] != "null":
 		(ilk_ucus, savasa_basla, hedef_takip, saga_git, sola_git, ileri_git, pid_disable, eve_don) = data.data.split(',')
 
 		yki_ilk_ucus = int(ilk_ucus)
@@ -451,6 +461,7 @@ def calling_methods():
 	global yki_savasa_basla_start_time																# olusturuldu.
 	global baglanti_durumu_koptu, savas_basladi 
 	global iha_ucus_mod
+	global ucus_hizi
 
 	current_time = time.time()
 	if yki_ilk_ucus == 1:
@@ -469,7 +480,7 @@ def calling_methods():
 		if current_time - yki_savasa_basla_start_time >=0.2:
 
 			yki_savasa_basla_start_time = time.time()
-			flight_controller(5.0)
+			flight_controller(ucus_hizi)
 			savas_basladi = 1 # bak bu cok dogru olmayabilir sebebi oyun sirasinda gps koparsa in diyebilmek her zaman aktif
 								# bir kere savasa basla demek yeterli
 	if yki_eve_don == 1:
@@ -522,6 +533,7 @@ if __name__ == '__main__':
 
 	print "Rahman ve Rahim olan ALLAH'IN adiyla"
 	print "Onlar, ustlerinde dizi dizi kanat acip kapayarak ucan kuslari gormuyorlar mi? Onlari Rahman (olan ALLAH')tan baskasi (boslukta) tutmuyor. Suphesiz O, herseyi hakkiyla gorendir."
+	print "La havle ve la kuvvete illa billahil aliyyil azim ----- Guc ve kuvvet, sadece Yuce ve Buyuk olan ALLAH'in yardimiyla elde edilir. "
 	rospy.init_node('gps_velocity', anonymous=True)
 	mavros.set_namespace('mavros')
 	rate = rospy.Rate(20)
@@ -531,6 +543,9 @@ if __name__ == '__main__':
 	state_sub = rospy.Subscriber('/uav1/mavros/state', State, state_cb)
 	
 	#rospy.Subscriber('spesific_waypoint', String, call_back_coordinates)
+	rospy.Subscriber('target_telemetry_data', String, call_back_coordinates)
+	#rospy.Subscriber('ucus_gorevi', String, call_back_yki)
+	#rospy.Subscriber('hiz_data', String, call_change_speed)
 	rospy.Subscriber('waypoint_random', String, call_back_coordinates)
 	rospy.Subscriber('yer_istasyonu', String, call_back_yki)
 	rospy.Subscriber('/uav1/mavros/global_position/global', NavSatFix, call_back_current_position)  
@@ -603,7 +618,7 @@ if __name__ == '__main__':
 				calling_methods()
 				pub3.publish(str(iha_ucus_mod))
 				pub.publish(msg)		
-			
+		
 				
 
 	

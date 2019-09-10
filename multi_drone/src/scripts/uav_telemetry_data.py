@@ -78,9 +78,10 @@ def call_back_yolo(data):# sucscreber olmadin
 	global kilitlenme_paketini_yaz, kilitlenme_zamani_temp
 	global x_target_axis, y_target_axis, target_weight, target_height, kilitlenme_durumu
 	
-	(x_target_axis, y_target_axis, target_weight, target_height, kilitlenme_durumu) = data.data.split()# null durumlarda var # kilitlenme durumu 0 olunca
+	(x_target_axis, y_target_axis, target_weight, target_height, kilitlenme_durumu) = data.data.split(" ")# null durumlarda var # kilitlenme durumu 0 olunca
 																					# kilitlenme bitisi 1 olunca kilitlenme baslangici gonder
 
+	(x_target_axis, y_target_axis, target_weight, target_height, kilitlenme_durumu) = (int(x_target_axis), int(y_target_axis), int(target_weight), int(target_height), int(kilitlenme_durumu))							
 
 	if kilitlenme_durumu == 1 and kilitlenme_zamani_temp == 1:
 
@@ -196,7 +197,7 @@ if __name__ == '__main__':
 	rospy.Subscriber('/uav1/mavros/global_position/global', NavSatFix, call_back_current_position) 
 	rospy.Subscriber('/uav1/mavros/local_position/odom', Odometry, get_rotation)
 	rospy.Subscriber('/uav1/mavros/battery', BatteryState, call_back_battery_state) 
-	rospy.Subscriber('/no_name', String, call_back_yolo) 
+	rospy.Subscriber('/hedef_durumu', String, call_back_yolo) 
 	rospy.Subscriber('/iha_ucus_modu', String, call_back_ucus_durumu)
 
 
@@ -214,10 +215,10 @@ if __name__ == '__main__':
 			#---------------------iha_telemetry------------
 			iha_telemetry_file = open("/home/efl4tun/Desktop/iha_telemetry.txt",'w')
 			#sirasini sor fatmanura
-			telemetry_data = str(current_lat) + "," + str(current_long) + "," + str(z_axis) + "," + str(roll_degrees) + "," + str(yaw_degrees) + "," + \
-			str(pitch_degrees) + "," + str(x_speed) + "," + str(voltage_rate) + "," + str(iha_otonom) + "," + str(kilitlenme_durumu) + "," + \
-			str(x_target_axis) + "," + str(y_target_axis) + "," + str(target_weight) + "," + str(target_height) + "," + str(sistem_h) + "," + str(sistem_m) + "," + \
-			str(sistem_s) + "," + str(sistem_ns) + "\n"
+			telemetry_data = str(current_lat) + "#" + str(current_long) + "#" + str(z_axis) + "#" + str(roll_degrees) + "#" + str(yaw_degrees) + "#" + \
+			str(pitch_degrees) + "#" + str(x_speed) + "#" + str(voltage_rate) + "#" + str(iha_otonom) + "#" + str(kilitlenme_durumu) + "#" + \
+			str(x_target_axis) + "#" + str(y_target_axis) + "#" + str(target_weight) + "#" + str(target_height) + "#" + str(sistem_h) + "#" + str(sistem_m) + "#" + \
+			str(sistem_s) + "#" + str(sistem_ns) + "\n"
 
 			
 			iha_telemetry_file.write(telemetry_data)
@@ -230,22 +231,22 @@ if __name__ == '__main__':
 
 
 
-			request_file = open("/home/efl4tun/Desktop/request.txt",'r')
-			request = request_file.readline()
+			#request_file = open("/home/efl4tun/Desktop/request.txt",'r')
+			#request = request_file.readline()
 			
 			#print request
-			if int(request) == 1:
+			#if int(request) == 1:
 
-				
-				sistem_saati_file = open("/home/efl4tun/Desktop/sistem_saati.txt",'w')
+			
+			sistem_saati_file = open("/home/efl4tun/Desktop/sistem_saati.txt",'w')
 
-				sistem_saati_data = str(sistem_h) + "," + str(sistem_m) + "," + str(sistem_s) + "," + str(sistem_ns)
+			sistem_saati_data = str(sistem_h) + "#" + str(sistem_m) + "#" + str(sistem_s) + "#" + str(sistem_ns)
 
-				sistem_saati_file.write(sistem_saati_data)
+			sistem_saati_file.write(sistem_saati_data)
 
-				open("/home/efl4tun/Desktop/sistem_saati.txt",'w').close()
+			open("/home/efl4tun/Desktop/sistem_saati.txt",'w').close()
 
-			request_file.close()
+			#request_file.close()
 
 
 			#--------------------------------------kilitlenme paketi
@@ -256,9 +257,9 @@ if __name__ == '__main__':
 
 				kilitlenme_file = open("/home/efl4tun/Desktop/kilitlenme.txt",'w')
 
-				kilitlenme_data = str(kilitlenme_baslangic_h) + "," + str(kilitlenme_baslangic_m) + "," + str(kilitlenme_baslangic_s) + "," + \
-				str(kilitlenme_baslangic_ns) + "," + str(kilitlenme_bitis_h) + "," + str(kilitlenme_bitis_m) + "," + str(kilitlenme_bitis_s) + "," + \
-				str(kilitlenme_bitis_ns) + "," + str(iha_otonom)
+				kilitlenme_data = str(kilitlenme_baslangic_h) + "#" + str(kilitlenme_baslangic_m) + "#" + str(kilitlenme_baslangic_s) + "#" + \
+				str(kilitlenme_baslangic_ns) + "#" + str(kilitlenme_bitis_h) + "#" + str(kilitlenme_bitis_m) + "#" + str(kilitlenme_bitis_s) + "#" + \
+				str(kilitlenme_bitis_ns) + "#" + str(iha_otonom)
 
 				kilitlenme_file.write(kilitlenme_data)
 

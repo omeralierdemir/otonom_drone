@@ -123,7 +123,7 @@ if __name__ == '__main__':
         else:
 
             
-            konum = "null"
+            konum = "null null null"
             print konum
             pub.publish(konum)  
 
