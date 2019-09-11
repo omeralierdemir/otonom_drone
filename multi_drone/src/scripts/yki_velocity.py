@@ -148,6 +148,7 @@ def get_home():
 			pub.publish(msg)
 			#print baglanti_durumu_koptu == 1
 			#baglanti_durumu = baglanti_durum_kontrol()
+			print "get_home"
 			if round(current_lat,5) == round(home_lat,5) and round(current_long,5) == round(home_longi,5):
 				print "break"
 				break
@@ -212,18 +213,20 @@ def call_back_coordinates(data):
 
 	print data.data.split(",")
 
-
+	telemetry_temp = data.data.split(",")
 	if eve_don_temp == 0: # eve_don komutu aktif olunca hedefin konumunu artik almayacak konum olarak home_telemeteleri set edilecek
 
 
 		
-		if data.data[0] != "null" :
+		if telemetry_temp[0] != "null" :
 			
 		 	(t_lat, t_longi, t_alt) = data.data.split(",")# null gelme durumunu dusun
 		 	
 		 	(target_lat, target_long, target_alt) = (float(t_lat), float(t_longi), float(t_alt))
 
-	
+		else:
+
+			print "nullllllllllll atadifsngfnmfgnmfgnm"
 	baglanti_yenilenme_zamani = time.time() # yki baglanti kontrolu icin olusturulmus zaman degiskeni bunu her yer istasyonu komtu gelince guncelle
 
  	
@@ -299,12 +302,12 @@ def flight_controller(follow_speed= 3.0):
 		yaw_radyan = math.atan2(y_eksen,x_eksen)
 		yaw_radyan2 = math.atan(x_eksen/y_eksen)
 		target_yaw =  (yaw_radyan / math.pi) * 180
-		
+		"""
 		print("lat: " ,y_eksen," long : ",x_eksen)
 		print("lat: " ,target_lat," long : ",target_long, " altitude: ",target_alt)
 		print("tanjant: ", yaw_radyan,yaw_radyan2)
 		print("lat, long create daki" ,target_lat, target_long, target_yaw )
-		
+		"""
 
 		msg.header.stamp = rospy.Time.now()
 		msg.header.frame_id = "world"
@@ -617,7 +620,8 @@ if __name__ == '__main__':
 				start_time3 = time.time()
 				calling_methods()
 				pub3.publish(str(iha_ucus_mod))
-				pub.publish(msg)		
+				pub.publish(msg)	
+				print ucus_hizi	
 		
 				
 

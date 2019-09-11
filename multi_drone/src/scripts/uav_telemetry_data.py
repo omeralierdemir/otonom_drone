@@ -134,8 +134,10 @@ def call_back_gps_time(data):
 	zaman = str(datetime.datetime.now().time())
 
 	(sistem_h, sistem_m, sistem_s) = zaman.split(':')
-
+	sistem_s = round(float(sistem_s),3)
+	sistem_s = str(sistem_s)
 	(sistem_s,sistem_ns) = sistem_s.split('.')
+
 
 	(sistem_h, sistem_m, sistem_s, sistem_ns) = (int(sistem_h), int(sistem_m), int(sistem_s), int(sistem_ns))  # float(sistem_ns) bunun int olmasi lazim olabilir
 
