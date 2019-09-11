@@ -358,6 +358,7 @@ def call_createWaypoints():
 		eve_don_temp = 1 # eve don cagrilabilmesi icin lazim
 
 
+
 	if current_time - gps_yenilenme_zamani >= 10.0 and yki_savasa_basla == 1: # eger gps baglantisi kopar ise 10 saniye sonra inise gec
 
 		print "gps baglantisi koptuuuu"

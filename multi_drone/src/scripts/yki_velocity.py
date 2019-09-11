@@ -210,7 +210,7 @@ def call_back_coordinates(data):
 	global baglanti_yenilenme_zamani
 	global eve_don_temp
 
-
+	print data.data.split(",")
 
 
 	if eve_don_temp == 0: # eve_don komutu aktif olunca hedefin konumunu artik almayacak konum olarak home_telemeteleri set edilecek
@@ -404,7 +404,7 @@ def call_back_yki(data):
 	global baglanti_yenilenme_zamani
 	
 	mod_data =  data.data.split(",")
-	
+	print "buradayim", mod_data
 
 	if mod_data[0] != "null":
 		(ilk_ucus, savasa_basla, hedef_takip, saga_git, sola_git, ileri_git, pid_disable, eve_don) = data.data.split(',')
@@ -544,10 +544,10 @@ if __name__ == '__main__':
 	
 	#rospy.Subscriber('spesific_waypoint', String, call_back_coordinates)
 	rospy.Subscriber('target_telemetry_data', String, call_back_coordinates)
-	#rospy.Subscriber('ucus_gorevi', String, call_back_yki)
-	#rospy.Subscriber('hiz_data', String, call_change_speed)
-	rospy.Subscriber('waypoint_random', String, call_back_coordinates)
-	rospy.Subscriber('yer_istasyonu', String, call_back_yki)
+	rospy.Subscriber('ucus_gorevi', String, call_back_yki)
+	rospy.Subscriber('hiz_data', String, call_change_speed)
+	#rospy.Subscriber('waypoint_random', String, call_back_coordinates)
+	#rospy.Subscriber('yer_istasyonu', String, call_back_yki)
 	rospy.Subscriber('/uav1/mavros/global_position/global', NavSatFix, call_back_current_position)  
 	rospy.Subscriber('get_pid', String, call_back_pid)
 	rospy.Subscriber('/uav1/mavros/local_position/odom', Odometry, get_rotation)

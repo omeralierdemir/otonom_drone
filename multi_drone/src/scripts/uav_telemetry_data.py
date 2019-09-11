@@ -67,7 +67,7 @@ def call_back_ucus_durumu(data):
 	global uav_state
 
 	uav_state = data.data
-	print uav_state
+	#print uav_state
 
 
 def call_back_yolo(data):# sucscreber olmadin
@@ -201,8 +201,8 @@ if __name__ == '__main__':
 	rospy.Subscriber('/iha_ucus_modu', String, call_back_ucus_durumu)
 
 
-	iha_telemetry_file = open("/home/efl4tun/Desktop/iha_telemetry.txt",'w') # nvidia kullanicisi olarak degistirmek zorundasin
-	request_file = open("/home/efl4tun/Desktop/request.txt",'r')
+	iha_telemetry_file = open("/home/efl4tun/Desktop/11_09/io/iha_telemetry.txt",'w') # nvidia kullanicisi olarak degistirmek zorundasin
+	#request_file = open("/home/efl4tun/Desktop/request.txt",'r')
 	time.sleep(4.0) # herveri ilk degerlerini almasi icin beklendi
 	
 	try:		
@@ -211,51 +211,42 @@ if __name__ == '__main__':
 		while not rospy.is_shutdown():
 
 
+			print "\n---------"
 
 			#---------------------iha_telemetry------------
-			iha_telemetry_file = open("/home/efl4tun/Desktop/iha_telemetry.txt",'w')
+			iha_telemetry_file = open("/home/efl4tun/Desktop/11_09/io/iha_telemetry.txt",'w')
 			#sirasini sor fatmanura
 			telemetry_data = str(current_lat) + "#" + str(current_long) + "#" + str(z_axis) + "#" + str(roll_degrees) + "#" + str(yaw_degrees) + "#" + \
 			str(pitch_degrees) + "#" + str(x_speed) + "#" + str(voltage_rate) + "#" + str(iha_otonom) + "#" + str(kilitlenme_durumu) + "#" + \
 			str(x_target_axis) + "#" + str(y_target_axis) + "#" + str(target_weight) + "#" + str(target_height) + "#" + str(sistem_h) + "#" + str(sistem_m) + "#" + \
-			str(sistem_s) + "#" + str(sistem_ns) + "\n"
+			str(sistem_s) + "#" + str(sistem_ns)
 
 			
 			iha_telemetry_file.write(telemetry_data)
-			rate.sleep()
+			time.sleep(0.1)
 			
-			#print telemetry_data			
-			open("/home/efl4tun/Desktop/iha_telemetry.txt",'w').close()
+			print "IHA_TELEMETRY \t" + str(telemetry_data)	
+			open("/home/efl4tun/Desktop/11_09/io/iha_telemetry.txt",'w').close()
 
 			#------------------------------------------------------------------------------ request
 
-
-
-			#request_file = open("/home/efl4tun/Desktop/request.txt",'r')
-			#request = request_file.readline()
-			
-			#print request
-			#if int(request) == 1:
-
-			
-			sistem_saati_file = open("/home/efl4tun/Desktop/sistem_saati.txt",'w')
+			sistem_saati_file = open("/home/efl4tun/Desktop/11_09/io/sistem_saati.txt",'w')
 
 			sistem_saati_data = str(sistem_h) + "#" + str(sistem_m) + "#" + str(sistem_s) + "#" + str(sistem_ns)
 
 			sistem_saati_file.write(sistem_saati_data)
 
-			open("/home/efl4tun/Desktop/sistem_saati.txt",'w').close()
+			time.sleep(0.1)
+			print "SISTEM_SAATI \t" + str(sistem_saati_data)
+			open("/home/efl4tun/Desktop/11_09/io/sistem_saati.txt",'w').close()
 
-			#request_file.close()
 
 
 			#--------------------------------------kilitlenme paketi
 
 			if kilitlenme_paketini_yaz == 1:
 				
-				#print "icerdeim"
-
-				kilitlenme_file = open("/home/efl4tun/Desktop/kilitlenme.txt",'w')
+				kilitlenme_file = open("/home/efl4tun/Desktop/11_09/io/kilitlenme.txt",'w')
 
 				kilitlenme_data = str(kilitlenme_baslangic_h) + "#" + str(kilitlenme_baslangic_m) + "#" + str(kilitlenme_baslangic_s) + "#" + \
 				str(kilitlenme_baslangic_ns) + "#" + str(kilitlenme_bitis_h) + "#" + str(kilitlenme_bitis_m) + "#" + str(kilitlenme_bitis_s) + "#" + \
@@ -263,19 +254,19 @@ if __name__ == '__main__':
 
 				kilitlenme_file.write(kilitlenme_data)
 
-				open("/home/efl4tun/Desktop/kilitlenme.txt",'w').close()
+				time.sleep(0.1)
+				print "KITLENME \t" + str(kilitlenme_data)
+				open("/home/efl4tun/Desktop/11_09/io/kilitlenme.txt",'w').close()
 			#---------------------------------------------------------------- iha durumu
 
-			uav_state_file = open("/home/efl4tun/Desktop/iha_durumu.txt",'w')
+			uav_state_file = open("/home/efl4tun/Desktop/11_09/io/iha_durumu.txt",'w')
 			#sirasini sor fatmanura
 			uav_data = str(uav_state) 
 
 			
 			iha_telemetry_file.write(uav_data)
-			rate.sleep()
 			
-			#print telemetry_data			
-			open("/home/efl4tun/Desktop/iha_durumu.txt",'w').close()
+			open("/home/efl4tun/Desktop/11_09/io/iha_durumu.txt",'w').close()
 
 
 

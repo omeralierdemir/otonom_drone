@@ -37,12 +37,13 @@ def call_back(data):
         x = float(XY[0])
         y = float(XY[1])
         r = float(XY[2])
-        if r >= 5:
+        if r >= 10:
             # -----------------------
-            errorY = 300 - y
+            errorY = 213 - y
 
-            kp = 1.0 / 100.0
-            kd = 1.0 / 150.0
+            hizYukselme = 0.75
+            kp =  hizYukselme / 213
+            kd =  hizYukselme / (213 + hizYukselme * (35)) 
 
             turevY = errorY - lastErrorY
             yukselmeY = errorY * kp + turevY * kd
