@@ -63,7 +63,9 @@ z_axis = 0 # kilitlenme 5 sn az olunca null gonder
 
 uav_state = 0
 
+def call_back_hiz_verisi(data):
 
+	
 if __name__ == '__main__':
 
 	rospy.init_node('waypoint_node', anonymous=True)
@@ -73,6 +75,11 @@ if __name__ == '__main__':
 	pub = rospy.Publisher('target_telemetry_data', String, queue_size=10)
 	pub2 = rospy.Publisher('ucus_gorevi', String, queue_size=10)
 	pub3 = rospy.Publisher('hiz_data', String, queue_size=10)
+
+
+    rospy.Subscriber('/target_telemetry_data', String, call_back_iha_telemetry)
+    rospy.Subscriber('/ucus_gorevi', String, call_back_sistem_saati)
+    rospy.Subscriber('/hiz_data', String, call_back_hiz_verisi)
 
 	#ucus_modu_file = open("/home/efl4tun/Deskt5#9#4#6#4#4### ['5op/ucus_modu.txt",'r') # nvidia kullanicisi olarak degistirmek zorundasin
 	#hedef_telemetry_file = open("/home/efl4tun/Desktop/iha_telemetry.txt",'r')
@@ -85,6 +92,8 @@ if __name__ == '__main__':
 		
 		while not rospy.is_shutdown():
 
+
+			"""
 			#------------------------ hedef telemetry
 			hedef_telemetry_file = open("/home/efl4tun/Desktop/11_09/io/target_iha_telemetry.txt",'r')
 			hedef_telemetry_data = hedef_telemetry_file.readline()
@@ -170,7 +179,33 @@ if __name__ == '__main__':
 			
 			ucus_gorevi_file.close()
 
+		"""
 
+		try:
+			(enlem, boylam, irtifa) =  hedef_telemetry_data.split(",")
+			(enlem_sahte, boylam_sahte, irtifa_sahte) = (float(enlem), float(boylam), float(irtifa))
+
+			
+
+		except Exception as e:
+			(enlem, boylam, irtifa) =  ("null","null","null")
+			print type(enlem)
+			print e
+		
+		hedef_telemetry_temp = str(enlem) + "," + str(boylam) + "," + str(irtifa)
+		pub.publish(hedef_telemetry_temp)
+
+		
+		try:
+			(ilk_ucus, savasa_basla, pid_disable , eve_don) =  ucus_gorevi_data.split(",")
+			#(ilk_ucus_t, savasa_basla_t, hedef_takip_t, saga_git_t, sola_git_t, ileri_git_t, pid_disable_t , eve_don_t) = (int(ilk_ucus), int(savasa_basla), int(hedef_takip), int(saga_git), int(sola_git), int(ileri_git), int(pid_disable) , int(eve_don))
+		except Exception as e:
+			(ilk_ucus, savasa_basla,  pid_disable , eve_don) = ("null","null","null","null")
+			print e
+
+		temp_deg = str(ilk_ucus) + "," + str(savasa_basla) + "," +  str(pid_disable) + "," + str(eve_don)
+		pub2.publish(temp_deg)
+			
 
 
 			rate.sleep()

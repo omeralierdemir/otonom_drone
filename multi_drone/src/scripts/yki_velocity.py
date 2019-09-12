@@ -181,7 +181,7 @@ def call_back_current_position(data):
 		#buraya seriportan istenen veri geldiyse kosulu konacak
 		home_lat =  data.latitude
 		home_longi = data.longitude
-		home_alt = 10.0 #baslangic yuksekligi 10m set edildi
+		home_alt = 30.0 #baslangic yuksekligi 10m set edildi
 		
 		print ("home paremetreleri set edildi", home_lat,home_longi,home_alt)
 	  # buna gerek kalmayabilir
@@ -210,6 +210,7 @@ def call_back_coordinates(data):
 	global target_lat, target_long, target_alt
 	global baglanti_yenilenme_zamani
 	global eve_don_temp
+	global positionZ 
 
 	print data.data.split(",")
 
@@ -224,6 +225,9 @@ def call_back_coordinates(data):
 		 	
 		 	(target_lat, target_long, target_alt) = (float(t_lat), float(t_longi), float(t_alt))
 
+		 	if target_alt == 0.0:
+
+		 		target_alt = positionZ
 		else:
 
 			print "nullllllllllll atadifsngfnmfgnmfgnm"
@@ -265,24 +269,26 @@ def flight_controller(follow_speed= 3.0):
 
 		errorY = target_alt - positionZ
 
-		kp = 1.0/20.0#0.02 #1.0/100.0 -----> 1/ 80.0  max hiz 3~2 m/s
-		kd = 1.0/30.0#0.012#1.0/150.0 -----> 1.0/75.0
-		kd = 0
-		turevY = errorY-lastErrorY
-		yukselmeY =  errorY*kp + turevY*kd
+		hizYukselme = 0.75
+        kp =  hizYukselme / 213
+        kd =  hizYukselme / (213 + hizYukselme * (35)) 
+		
+
+        turevY = errorY-lastErrorY
+        yukselmeY =  errorY*kp + turevY*kd
 		#msg.velocity.z = yukselmeY
 		
-		lastErrorY = errorY
+        lastErrorY = errorY
 
-		if yukselmeY >= 1.0:
-			yukselmeY =1.0
+        if yukselmeY >= 1.3:
+            yukselmeY =1.3
 
-		if yukselmeY <= -1.0:
+        if yukselmeY <= -1.3:
 
-			yukselmeY = -1.0
+            yukselmeY = -1.3
 
-
-		print target_alt, positionZ, yukselmeY
+	
+        #print target_alt, positionZ, yukselmeY
 
 	    # ------------------------------------------
 
@@ -290,36 +296,31 @@ def flight_controller(follow_speed= 3.0):
 
 		
 
-		y_eksen = target_lat - current_lat #burada direk r1* 0.00001 i esitlenebilir ama hatirlanman icin boyle yaptin 
-		x_eksen = (target_long - current_long) *   0.7627 #yeni deger #400/700 # ayni scalayacektik enlem ile boylami (yaklasik olarak)
+        y_eksen = target_lat - current_lat 
+        x_eksen = (target_long - current_long) *   0.7627 #yeni deger #400/700 # ayni scalayacektik enlem ile boylami (yaklasik olarak)
 		
-		if y_eksen == 0:
-			y_eksen = 0.0000001
-		if x_eksen == 0:
-			x_eksen = 0.0000001
+        if y_eksen == 0:
+            y_eksen = 0.0000001
+        if x_eksen == 0:
+            x_eksen = 0.0000001
 
 
-		yaw_radyan = math.atan2(y_eksen,x_eksen)
-		yaw_radyan2 = math.atan(x_eksen/y_eksen)
-		target_yaw =  (yaw_radyan / math.pi) * 180
-		"""
-		print("lat: " ,y_eksen," long : ",x_eksen)
-		print("lat: " ,target_lat," long : ",target_long, " altitude: ",target_alt)
-		print("tanjant: ", yaw_radyan,yaw_radyan2)
-		print("lat, long create daki" ,target_lat, target_long, target_yaw )
-		"""
+        yaw_radyan = math.atan2(y_eksen,x_eksen)
+        yaw_radyan2 = math.atan(x_eksen/y_eksen)
+        target_yaw =  (yaw_radyan / math.pi) * 180
+		
 
-		msg.header.stamp = rospy.Time.now()
-		msg.header.frame_id = "world"
-		msg.coordinate_frame = PositionTarget.FRAME_BODY_NED
-		msg.type_mask = PositionTarget.IGNORE_PX | PositionTarget.IGNORE_PY | PositionTarget.IGNORE_PZ | PositionTarget.IGNORE_AFX | PositionTarget.IGNORE_AFY | PositionTarget.IGNORE_AFZ | PositionTarget.IGNORE_YAW_RATE
+        msg.header.stamp = rospy.Time.now()
+        msg.header.frame_id = "world"
+        msg.coordinate_frame = PositionTarget.FRAME_BODY_NED
+        msg.type_mask = PositionTarget.IGNORE_PX | PositionTarget.IGNORE_PY | PositionTarget.IGNORE_PZ | PositionTarget.IGNORE_AFX | PositionTarget.IGNORE_AFY | PositionTarget.IGNORE_AFZ | PositionTarget.IGNORE_YAW_RATE
 
-		msg.velocity.x = 0.0
-		msg.velocity.y = follow_speed#follow_speed # suankil 4m/s sonradan arguman olarak yer istasyonundan alinacak (float)
-		msg.velocity.z = yukselmeY # suanlik 0 sonradan konrolcu eklenecek
-		msg.yaw = yaw_radyan
+        msg.velocity.x = 0.0
+        msg.velocity.y = follow_speed#follow_speed # suankil 4m/s sonradan arguman olarak yer istasyonundan alinacak (float)
+        msg.velocity.z = yukselmeY # suanlik 0 sonradan konrolcu eklenecek
+        msg.yaw = yaw_radyan
 		#pid_wait = time.time()
-		rate.sleep()
+        rate.sleep()
 
 		#_________________________________________________
 
@@ -377,7 +378,7 @@ def call_back_pid(pid_data):
 	
 
 
-def set_single_position(desired_x=0, desired_y=0, desired_z=10):
+def set_single_position(desired_x=0, desired_y=0, desired_z=30):
 
 	global msg
 
@@ -410,16 +411,17 @@ def call_back_yki(data):
 	print "buradayim", mod_data
 
 	if mod_data[0] != "null":
-		(ilk_ucus, savasa_basla, hedef_takip, saga_git, sola_git, ileri_git, pid_disable, eve_don) = data.data.split(',')
+
+		(ilk_ucus, savasa_basla, pid_disable, eve_don) = data.data.split(',')
+		
+		print "ifdeyim", (ilk_ucus, savasa_basla, pid_disable, eve_don)
 
 		yki_ilk_ucus = int(ilk_ucus)
 		yki_savasa_basla = int(savasa_basla)
-		yki_hedef_takip = int(hedef_takip)
-		yki_saga_git = int(saga_git)
-		yki_sola_git = int(sola_git)
-		yki_ileri_git = int(ileri_git)
+		
 		yki_pid_disable = int(pid_disable)
 		yki_eve_don = int(eve_don)
+		
 		# bak burada neleri set ettigine cok dikkat et yoksa sacma harektler yapar iha
 
 		if yki_eve_don == 1:
@@ -428,10 +430,6 @@ def call_back_yki(data):
 			
 			yki_ilk_ucus = 0
 			yki_savasa_basla = 0
-			yki_hedef_takip = 0
-			yki_saga_git = 0
-			yki_sola_git = 0
-			yki_ileri_git = 0
 			yki_eve_don = 1
 
 			eve_don_temp = 1
@@ -450,7 +448,7 @@ def call_back_yki(data):
 			             #gonderilen paketleri buna gore ayarla
 			baglanti_yenilenme_zamani = time.time()
 
-		print (yki_ilk_ucus, yki_savasa_basla, yki_hedef_takip, yki_saga_git, yki_sola_git, yki_ileri_git, yki_pid_disable, yki_eve_don)
+		print (yki_ilk_ucus, yki_savasa_basla, yki_pid_disable, yki_eve_don)
 
 
 
@@ -495,7 +493,7 @@ def calling_methods():
 
 	#print "cuurent time : ",current_time, baglanti_yenilenme_zamani, "----", gps_yenilenme_zamani , " -oooooo- ", current_time- baglanti_yenilenme_zamani,baglanti_koptu_temp == 1 ,yki_savasa_basla == 1
 
-	if current_time - baglanti_yenilenme_zamani >= 20.0 and baglanti_koptu_temp == 1 and yki_savasa_basla == 1: # eger baglanti kopar ise 20 saniye sonra eve don bunu yer istasyonuna sucscreber
+	if current_time - baglanti_yenilenme_zamani >= 15.0 and baglanti_koptu_temp == 1 and yki_savasa_basla == 1: # eger baglanti kopar ise 20 saniye sonra eve don bunu yer istasyonuna sucscreber
 															# oldugun her metotda kullanabilirsin
 		print "ifdeyim baglanti koptu"															
 		#get_home()
@@ -621,7 +619,7 @@ if __name__ == '__main__':
 				calling_methods()
 				pub3.publish(str(iha_ucus_mod))
 				pub.publish(msg)	
-				print ucus_hizi	
+				#	 print ucus_hizi	
 		
 				
 

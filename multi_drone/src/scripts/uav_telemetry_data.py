@@ -102,10 +102,11 @@ def call_back_yolo(data):# sucscreber olmadin
 
 	#(x_axis, y_axis, weight, height, kilitlenme_durumu) = (int(x_axis), int(y_axis), int(weight), int(height), int(kilitlenme_durumu))
 
-	if kilitlenme_geri_sayim_bitis - kilitlenme_geri_sayim_baslangic >= 7 :
+	if kilitlenme_geri_sayim_bitis - kilitlenme_geri_sayim_baslangic >= 10 :
+
 		
-		 print "dosyaya yaz"
-		 kilitlenme_paketini_yaz = 1
+		
+		kilitlenme_paketini_yaz = 1
 
 	else:
 
@@ -193,7 +194,7 @@ if __name__ == '__main__':
 	mavros.set_namespace('mavros')
 	rate = rospy.Rate(5)
 	rospy.wait_for_service('/uav1/mavros/cmd/arming')
-	set_mode = rospy.ServiceProxy('/uav1/mavros/set_mode', mavros_msgs.srv.SetMode)
+	#set_mode = rospy.ServiceProxy('/uav1/mavros/set_mode', mavros_msgs.srv.SetMode)
 	
 	rospy.Subscriber('/uav1/mavros/global_position/raw/gps_vel', TwistStamped, call_back_gps_time) 
 	rospy.Subscriber('/uav1/mavros/global_position/global', NavSatFix, call_back_current_position) 
@@ -203,75 +204,33 @@ if __name__ == '__main__':
 	rospy.Subscriber('/iha_ucus_modu', String, call_back_ucus_durumu)
 
 
-	iha_telemetry_file = open("/home/efl4tun/Desktop/11_09/io/iha_telemetry.txt",'w') # nvidia kullanicisi olarak degistirmek zorundasin
-	#request_file = open("/home/efl4tun/Desktop/request.txt",'r')
-	time.sleep(4.0) # herveri ilk degerlerini almasi icin beklendi
-	
+	pub = rospy.Publisher('iha_telemetry', String, queue_size=10)
+	pub2 = rospy.Publisher('sistem_saati', String, queue_size=10)
+	pub3 = rospy.Publisher('kilitlenme_verisi', String, queue_size=10)
+
 	try:		
 		
 		
 		while not rospy.is_shutdown():
 
-
-			print "\n---------"
-
-			#---------------------iha_telemetry------------
-			iha_telemetry_file = open("/home/efl4tun/Desktop/11_09/io/iha_telemetry.txt",'w')
-			#sirasini sor fatmanura
 			telemetry_data = str(current_lat) + "#" + str(current_long) + "#" + str(z_axis) + "#" + str(roll_degrees) + "#" + str(yaw_degrees) + "#" + \
 			str(pitch_degrees) + "#" + str(x_speed) + "#" + str(voltage_rate) + "#" + str(iha_otonom) + "#" + str(kilitlenme_durumu) + "#" + \
 			str(x_target_axis) + "#" + str(y_target_axis) + "#" + str(target_weight) + "#" + str(target_height) + "#" + str(sistem_h) + "#" + str(sistem_m) + "#" + \
 			str(sistem_s) + "#" + str(sistem_ns)
 
-			
-			iha_telemetry_file.write(telemetry_data)
-			time.sleep(0.1)
-			
-			print "IHA_TELEMETRY \t" + str(telemetry_data)	
-			open("/home/efl4tun/Desktop/11_09/io/iha_telemetry.txt",'w').close()
-
-			#------------------------------------------------------------------------------ request
-
-			sistem_saati_file = open("/home/efl4tun/Desktop/11_09/io/sistem_saati.txt",'w')
+			pub.publish(telemetry_data)
 
 			sistem_saati_data = str(sistem_h) + "#" + str(sistem_m) + "#" + str(sistem_s) + "#" + str(sistem_ns)
-
-			sistem_saati_file.write(sistem_saati_data)
-
-			time.sleep(0.1)
-			print "SISTEM_SAATI \t" + str(sistem_saati_data)
-			open("/home/efl4tun/Desktop/11_09/io/sistem_saati.txt",'w').close()
-
-
-
-			#--------------------------------------kilitlenme paketi
-
+			
+			pub2.publish(sistem_saati_data)
 			if kilitlenme_paketini_yaz == 1:
-				
-				kilitlenme_file = open("/home/efl4tun/Desktop/11_09/io/kilitlenme.txt",'w')
-
 				kilitlenme_data = str(kilitlenme_baslangic_h) + "#" + str(kilitlenme_baslangic_m) + "#" + str(kilitlenme_baslangic_s) + "#" + \
-				str(kilitlenme_baslangic_ns) + "#" + str(kilitlenme_bitis_h) + "#" + str(kilitlenme_bitis_m) + "#" + str(kilitlenme_bitis_s) + "#" + \
-				str(kilitlenme_bitis_ns) + "#" + str(iha_otonom)
+					str(kilitlenme_baslangic_ns) + "#" + str(kilitlenme_bitis_h) + "#" + str(kilitlenme_bitis_m) + "#" + str(kilitlenme_bitis_s) + "#" + \
+					str(kilitlenme_bitis_ns) + "#" + str(iha_otonom)
 
-				kilitlenme_file.write(kilitlenme_data)
-
-				time.sleep(0.1)
-				print "KITLENME \t" + str(kilitlenme_data)
-				open("/home/efl4tun/Desktop/11_09/io/kilitlenme.txt",'w').close()
-			#---------------------------------------------------------------- iha durumu
-
-			uav_state_file = open("/home/efl4tun/Desktop/11_09/io/iha_durumu.txt",'w')
-			#sirasini sor fatmanura
-			uav_data = str(uav_state) 
-
+				pub3.publish(kilitlenme_data)
 			
-			iha_telemetry_file.write(uav_data)
-			
-			open("/home/efl4tun/Desktop/11_09/io/iha_durumu.txt",'w').close()
-
-
-
+			rate.sleep()
 	
 	except rospy.ROSInterruptException:
 		pass
