@@ -217,11 +217,12 @@ if __name__ == '__main__':
 			str(pitch_degrees) + "#" + str(x_speed) + "#" + str(voltage_rate) + "#" + str(iha_otonom) + "#" + str(kilitlenme_durumu) + "#" + \
 			str(x_target_axis) + "#" + str(y_target_axis) + "#" + str(target_weight) + "#" + str(target_height) + "#" + str(sistem_h) + "#" + str(sistem_m) + "#" + \
 			str(sistem_s) + "#" + str(sistem_ns)
-
+			print telemetry_data
 			pub.publish(telemetry_data)
 
 			sistem_saati_data = str(sistem_h) + "#" + str(sistem_m) + "#" + str(sistem_s) + "#" + str(sistem_ns)
-			
+			print sistem_saati_data
+
 			pub2.publish(sistem_saati_data)
 			if kilitlenme_paketini_yaz == 1:
 				kilitlenme_data = str(kilitlenme_baslangic_h) + "#" + str(kilitlenme_baslangic_m) + "#" + str(kilitlenme_baslangic_s) + "#" + \

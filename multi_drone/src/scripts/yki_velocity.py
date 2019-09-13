@@ -225,9 +225,13 @@ def call_back_coordinates(data):
 		 	
 		 	(target_lat, target_long, target_alt) = (float(t_lat), float(t_longi), float(t_alt))
 
+		 	if target_alt < 25.0:
+
+		 		print "sd"
+
 		 	if target_alt == 0.0:
 
-		 		target_alt = positionZ
+		 		target_alt = 35.0
 		else:
 
 			print "nullllllllllll atadifsngfnmfgnmfgnm"
@@ -378,7 +382,7 @@ def call_back_pid(pid_data):
 	
 
 
-def set_single_position(desired_x=0, desired_y=0, desired_z=30):
+def set_single_position(desired_x=0, desired_y=0, desired_z=32):
 
 	global msg
 

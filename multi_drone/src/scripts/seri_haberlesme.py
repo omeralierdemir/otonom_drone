@@ -55,18 +55,14 @@ def createDetectionInfo():
         state = 0
     )
 
-def createCommand():
-    commad = dict(
-        Command = 0
-    )
 
 
 # ---- serial
 
 #ser = serial.Serial('/dev/ttyTELEMETRY', 57600, timeout=500,
 #parity=serial.PARITY_EVEN, rtscts=1)
-ser = serial.Serial('/dev/ttyUSB0', 57600, timeout=500,
-parity=serial.PARITY_EVEN, rtscts=1)
+ser = serial.Serial('/dev/ttyUSB2', 57600, timeout=500,
+parity=serial.PARITY_NONE, rtscts=1)
 
 # ---- Package
 
@@ -86,7 +82,8 @@ PackageTypes = dict(
     SystemTime = 111,
     Location = 222,
     Command = 555,
-    Speed=666
+    Speed=666,
+    Config2=777
 )
 
 # ---- Boxses
@@ -106,6 +103,7 @@ TakeOff = 0
 def call_back_iha_telemetry(data):
     global iha_telemetry
     iha_telemetry = data.data
+    #iha_telemetry = data
 
     data = iha_telemetry.replace(".",",").replace("#","_")
     arr = data.split("_")
@@ -114,11 +112,10 @@ def call_back_iha_telemetry(data):
     string = "_"
     string = string.join(arr)
     package = createPackage(True)
-    package["lenght"] = len(package["data"])
     package["data"] = string
+    package["lenght"] = len(package["data"])
     package["type"] = PackageTypes["Telemetri"]
-    WriteData(packageToString(package, True))
-
+    writeStringData((packageToString(package, True)))
 
 
 def call_back_sistem_saati(data):
@@ -140,7 +137,7 @@ def createPackage(newPackage):
         lenght = 0,
         type = PackageTypes["Telemetri"],
         data = "",
-        lastSended = 0,
+        lastSended = 0
     )
     if newPackage is True:
         package["id"] = curPackageId
@@ -155,6 +152,7 @@ def packageToConfig(package):
     return package
 
 def propertySizeAdjust(value,size):
+
     value = str(value)
     size = size
     string = ""
@@ -164,12 +162,11 @@ def propertySizeAdjust(value,size):
         string = string + "0"
 
     string = string + str(value)
-
     return string
 
 def packageToString(package,add):
     if add is True:
-        return propertySizeAdjust(package["id"],idSize) + propertySizeAdjust(package["lenght"],lenghtSize) + str(package["type"]) + package["data"]
+        return propertySizeAdjust(package["id"],idSize) + propertySizeAdjust(package["lenght"],lenghtSize-2) + str(package["type"]) + package["data"]
     else:
         return str(package["id"]) + str(package["lenght"]) + str(package["type"]) + str(package["data"])
 
@@ -182,24 +179,23 @@ def packageToObj(package):
         print(package["data"])
 
 
-
-
 # -------------- Package
-def stringToCommand(str):
-    telemetri = createCommand()
+def stringToCommand(string):
+    telemetri = dict()
 
-    if str == "TakeOff":
+    if string == "TakeOff":
         telemetri["Command"] = "TakeOff"
-    elif str == "Start":
+    elif string == "Start":
         telemetri["Command"] = "Start"
-    elif str == "HomeSweetHome":
+    elif string == "HomeSweetHome":
         telemetri["Command"] = "HomeSweetHome"
-    elif str == "PID":
+    elif string == "PID":
         telemetri["Command"] = "PID"
 
     return telemetri
 
 def stringToPackage(str):
+
     package = createPackage(False)
     index = 0
     package["id"] = str[index:idSize]
@@ -217,8 +213,17 @@ def configTimeOut():
     print("")
 
 def WriteData(string):
-    ser.write(str(string) + "\n" );
-    print("Triggered")
+
+    print("----- Senden DATA ")
+    print(packageToString(string,False) )
+    ser.write(packageToString(string,False) + "\n" );
+    #print("Triggered")
+
+
+def writeStringData(string):
+    print("----- Senden DATA ")
+    print(string)
+    ser.write(string + "\n")
 
 def run():
     listen()
@@ -228,24 +233,31 @@ def listen():
     pub = rospy.Publisher('target_telemetry_data', String, queue_size=10)
     pub2 = rospy.Publisher('ucus_gorevi', String, queue_size=10)
     pub3 = rospy.Publisher('hiz_data', String, queue_size=10)
+
     while True:
         line = ser.readline()
         package = stringToPackage(line)
+        
+        print("\n--------------------" + package["id"] + "-------------------")
+        print(line[:len(line)-1 ])
 
+        if str(package["type"]) == str(PackageTypes["Config2"]):
+            print "----- Package is Succesfull !!!!!"
 
-        # If config message arrive
-        if package["type"] == PackageTypes["Config"]:
-            # If exsist in waitinbox
-            if package["id"] in WaitBox:
-                # Check variables are correct
-                if package["data"] == WaitBox[package["id"]]["data"]:
-                    # Delete from waiting box
-                    del WaitBox[package["id"]]
-        else:
+            package = InBox[package["id"]]
+
+            if InBox[package["id"]] is None:
+                continue
+
+            # ------- Location
             if package["type"] == str(PackageTypes["Location"]): # Target IHA
-                 target_iha = str(package["data"]).replace(",",".").replace("_",",")
-                 pub.publish(target_iha)
-                 print target_iha
+                target_iha = str(package["data"]).replace(",",".").replace("_",",")
+                pub.publish(target_iha)
+                 
+                print "----- Drone Received Data"
+                print target_iha
+
+            # ------- Command
             elif package["type"] == str(PackageTypes["Command"]): # Komutlar
 
                 TakeOff =0
@@ -266,20 +278,32 @@ def listen():
 
                  #flight_command = str(package["data"]).replace(",",".").replace("_",",")
                 pub2.publish(flight_command)
+                
+                print "----- Drone Received Data"
                 print flight_command
+
+            # ------- Speed
             elif package["type"]== str(PackageTypes["Speed"]): # Hiz komutlari
                 speed_data = str(package["data"]).replace(",",".").replace("_",",")
                 pub3.publish(speed_data)
+                
+                print "----- Drone Received Data"
                 print speed_data
 
-            config = packageToConfig(package)
-            config = packageToString(config,False)
+        elif str(package["type"]) == str(PackageTypes["Config"]):
+
+            clone = package.copy()
+            clone["type"] = PackageTypes["Config2"]
+            config = packageToString(clone,False)
+
             WriteData(config)
 
-            if package["id"] in InBox:
-                InBox[package["id"]] = package
+        else:
+            if package["id"] not in InBox:
+                InBox[package["id"]] = package.copy()
 
-        obj = packageToObj(package)
+            config = packageToConfig(package)
+            WriteData(config)
 
 
 if __name__ == '__main__':
@@ -287,10 +311,10 @@ if __name__ == '__main__':
     rospy.init_node('seri_haberlesme', anonymous=True)
     mavros.set_namespace('mavros')
 
-
+    # string = call_back_iha_telemetry("47.3977413#8.5456072#0#358.8596#356.6365#1.1037#0.0222#76#1#0#0#0#0#0#9#45#50#247")
     rospy.Subscriber('/iha_telemetry', String, call_back_iha_telemetry)
     rospy.Subscriber('/sistem_saati', String, call_back_sistem_saati)
     rospy.Subscriber('/kilitlenme_verisi', String, call_back_kilitlenme_verisi)
 
     run()
-    ros.spin()
+    ##ros.spin()
